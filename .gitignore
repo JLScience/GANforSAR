@@ -240,4 +240,5 @@ pip-selfcheck.json
 *.png
 *.tiff
 
-
+# Compiled python files
+*.pyc
