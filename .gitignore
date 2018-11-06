@@ -228,3 +228,16 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # End of https://www.gitignore.io/api/linux,python,pycharm
+
+
+# --- MANUAL EDITED ---
+
+# Datasets
+*.hdf5
+
+# Satellite images (standard formats)
+*.mat
+*.png
+*.tiff
+
+
