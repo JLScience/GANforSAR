@@ -1,2 +1,3 @@
+import h5py
 
-print('Hello Github')
+print(h5py.__version__)
