@@ -1,6 +1,6 @@
 # GANforSAR
 
-# required Python packages:
+### required Python packages:
 - numpy
 - h5py
 - matplotlib
