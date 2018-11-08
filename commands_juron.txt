@@ -1,0 +1,30 @@
+
+# in Arbeitsverzeichnis wechseln:
+cd $WORK/GANforSAR
+
+# benoetigte module:
+module load gcc/5.4.0
+module load python/2.7.14
+module load cuDNN/7.1
+module load numpy
+module load scipy
+module load tensorflow/1.7...
+module load keras
+
+# virtualenv aktivieren:
+source bin/activate
+
+# testen ob alle benötigten Module vorhanden sind:
+pip list
+python check_dependencies.py
+
+# speichern / laden von modulen:
+module store <name>
+module load <name>
+
+# liste aller installierten python module:
+module keyword pythonmodule
+
+# run compute node:
+bsub -gpu "num=1" -Is -tty /bin/bash
+
