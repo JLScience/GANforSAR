@@ -275,4 +275,4 @@ class GAN_P2P():
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    gan.train()
+    # gan.train()
