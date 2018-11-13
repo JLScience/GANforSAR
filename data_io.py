@@ -212,7 +212,7 @@ def png2tif(im_png, im_tiff):
 
 # USAGE: create_dataset_maps('ex_maps.hdf5', 'data/maps/')
 def create_dataset_maps(dataset_name, file_location):
-    shape = 600
+    shape = 512
     channels = 3
     training_location = file_location + 'train/'
     test_location = file_location + 'val/'
@@ -229,8 +229,8 @@ def create_dataset_maps(dataset_name, file_location):
     map = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
     for i, file in enumerate(files):
         im = imageio.imread(training_location + file)
-        aerial[i, :, :, :] = im[:, :600, :]
-        map[i, :, :, :] = im[:, 600:, :]
+        aerial[i, :, :, :] = im[:shape, :shape, :]
+        map[i, :, :, :] = im[:shape, 600:600+shape, :]
     print('save dataset ...')
     f.create_dataset('aerial_train', data=aerial)
     f.create_dataset('map_train', data=map)
@@ -243,8 +243,8 @@ def create_dataset_maps(dataset_name, file_location):
     map = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
     for i, file in enumerate(files):
         im = imageio.imread(test_location + file)
-        aerial[i, :, :, :] = im[:, :600, :]
-        map[i, :, :, :] = im[:, 600:, :]
+        aerial[i, :, :, :] = im[:shape, :shape, :]
+        map[i, :, :, :] = im[:shape, 600:600+shape, :]
     print('save dataset ...')
     f.create_dataset('aerial_test', data=aerial)
     f.create_dataset('map_test', data=map)
@@ -260,6 +260,15 @@ def load_dataset_maps(path):
     aerial_test = np.array(f['aerial_test'])
     map_test = np.array(f['map_test'])
     return aerial_train, map_train, aerial_test, map_test
+
+
+# create_dataset_maps('ex_maps_small.hdf5', 'data/maps/')
+# atr, mtr, ate, mte = load_dataset_maps('data/maps/ex_maps.hdf5')
+# import matplotlib.pyplot as plt
+# fig, axs = plt.subplots(1, 2)
+# axs[0].imshow(atr[0, ...])
+# axs[1].imshow(mtr[0, ...])
+# plt.show()
 
 
 # - - - - - ---------------------------- - - - - -

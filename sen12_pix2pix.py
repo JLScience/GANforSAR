@@ -14,11 +14,12 @@ import augmentation
 
 # TRAINING VARIABLES:
 EPOCHS = 200
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
-GENERATOR_EVOLUTION_INDIZES = [10, 50, 100, 200]
-GENERATED_DATA_LOCATION = 'images/sen1-2/pix2pix_testing/'
+GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
+GENERATED_DATA_LOCATION = 'generated_images/baseline/aerial_maps/'
+DATASET_PATH = 'data/maps/ex_maps_small.hdf5'
 # - - - - - - - - - -
 
 
@@ -26,10 +27,10 @@ class GAN_P2P():
 
     def __init__(self):
         # image geometry
-        self.img_rows = 128
-        self.img_cols = 128
+        self.img_rows = 256
+        self.img_cols = 256
         self.channels_cond = 3
-        self.channels_gen = 1
+        self.channels_gen = 3
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
         self.img_shape_gen = (self.img_rows, self.img_cols, self.channels_gen)
 
@@ -128,7 +129,7 @@ class GAN_P2P():
 
         return Model([img_gen, img_cond], validity)
 
-    def train(self):
+    def train_sen12(self):
 
         # load datasets:
         print('--- Load datasets ...')
@@ -209,6 +210,87 @@ class GAN_P2P():
                     self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
                 rep += 1
 
+    def train_aerial_map(self):
+        # load datasets:
+        print('--- Load datasets ...')
+        aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps(DATASET_PATH)
+
+        # # shrink dataset:
+        # aerial_train = aerial_train[:500, ...]
+        # map_train = map_train[:500, ...]
+        # aerial_test = aerial_test[:50, ...]
+        # map_test = map_test[:50, ...]
+
+        # normalize datasets:
+        print('--- normalize datasets ...')
+        aerial_test = np.array(aerial_test / 127.5 - 1, dtype=np.float32)
+        print('aerial_test done')
+        map_test = np.array(map_test / 127.5 - 1, dtype=np.float32)
+        print('map_test done')
+        aerial_train = np.array(aerial_train / 127.5 - 1, dtype=np.float32)
+        print('aerial_train done')
+        map_train = np.array(map_train / 127.5 - 1, dtype=np.float32)
+        print('map_train done')
+
+        # # cut images:
+        # print('--- divide images ...')
+        # dataset_sar_test = augmentation.split_images(dataset_sar_test, 2)
+        # print('sar_test done')
+        # dataset_opt_test = augmentation.split_images(dataset_opt_test, 2)
+        # print('opt_test done')
+        # dataset_sar_train = augmentation.split_images(dataset_sar_train, 2)
+        # print('sar_train done')
+        # dataset_opt_train = augmentation.split_images(dataset_opt_train, 2)
+        # print('opt_train done')
+
+        num_train = aerial_train.shape[0]
+        num_test = aerial_test.shape[0]
+
+        # ground truths:
+        valid = np.ones((BATCH_SIZE,) + self.disc_patch)
+        fake = np.zeros((BATCH_SIZE,) + self.disc_patch)
+
+        rep = 0
+        for epoch in range(EPOCHS):
+
+            # shuffle datasets:
+            p = np.random.permutation(num_train)
+            map_train = map_train[p]
+            aerial_train = aerial_train[p]
+
+            for batch_i in range(0, num_train, BATCH_SIZE):
+                # input = map, output = aerial
+                # get actual batch:
+                imgs_gen_real = aerial_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
+                num_samples = imgs_gen_real.shape[0]
+
+                # train discriminator
+                imgs_gen = self.generator.predict(imgs_cond)
+                d_loss_real = self.discriminator.train_on_batch(x=[imgs_gen_real, imgs_cond], y=valid[:num_samples])
+                d_loss_fake = self.discriminator.train_on_batch(x=[imgs_gen, imgs_cond], y=fake[:num_samples])
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+
+                # train generator:
+                g_loss = self.combined.train_on_batch(x=[imgs_gen_real, imgs_cond],
+                                                      y=[valid[:num_samples], imgs_gen_real])
+
+                print("[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
+                      "[D loss: {:05.3f}, acc: {:05.2f}%] \t [G loss: {:05.3f}]".format(epoch + 1, EPOCHS,
+                                                                                        int(batch_i / BATCH_SIZE),
+                                                                                        int(num_train / BATCH_SIZE),
+                                                                                        d_loss[0], 100 * d_loss[1],
+                                                                                        g_loss[0]))
+
+                if rep % SAMPLE_INTERVAL == 0:
+                    i = np.random.randint(low=0, high=num_test, size=3)
+                    img_batch = aerial_test[i], map_test[i]
+                    self.sample_images(epoch, rep, img_batch)
+                    img_batch = aerial_test[GENERATOR_EVOLUTION_INDIZES], map_test[
+                        GENERATOR_EVOLUTION_INDIZES]
+                    self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
+                rep += 1
+
     def generator_evolution(self, epoch, sample_interval, repetition, img_batch):
 
         imgs_gen_real, imgs_cond = img_batch
@@ -234,11 +316,11 @@ class GAN_P2P():
                 for j in range(1, num_images_to_show + 1):
                     idx = int(j * repetition / (sample_interval * num_images_to_show))
                     # axs[i, j].imshow(self.generator_evolution_data[idx][i, :, :, 0], cmap='gray')
-                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i, :, :, 0], cmap='gray')
+                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i])
                     axs[i, j].set_title(idx * sample_interval)
                     axs[i, j].axis('off')
                 # plot original image:
-                axs[i, 6].imshow(imgs_gen_real[i, :, :, 0], cmap='gray')
+                axs[i, 6].imshow(imgs_gen_real[i])
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
             fig.savefig(GENERATED_DATA_LOCATION + 'evolution_{}_{}.png'.format(epoch+1, repetition))
@@ -266,13 +348,14 @@ class GAN_P2P():
                     axs[i, j].imshow(imgs_all[j][i])
                 # gray scale image:
                 else:
-                    axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
+                    axs[i, j].imshow(imgs_all[j][i])
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
         fig.savefig(GENERATED_DATA_LOCATION + '{}_{}.png'.format(epoch+1, repetition))
         plt.close()
 
+
 if __name__ == '__main__':
     gan = GAN_P2P()
-    # gan.train()
+    gan.train_aerial_map()

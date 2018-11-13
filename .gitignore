@@ -232,6 +232,9 @@ pip-selfcheck.json
 
 # --- MANUAL EDITED ---
 
+# Outputs
+generated_images/
+
 # Datasets
 data/
 *.hdf5
