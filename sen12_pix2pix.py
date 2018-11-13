@@ -15,13 +15,15 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 200
+EPOCHS = 100
 BATCH_SIZE = 10
 SAMPLE_INTERVAL = 50
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
 GENERATED_DATA_LOCATION = 'generated_images/baseline/aerial_maps/'
 DATASET_PATH = 'data/maps/ex_maps_small.hdf5'
+MODEL_WEIGHTS_PATH = 'models/baseline/aerial_maps/'
+
 # - - - - - - - - - -
 
 
@@ -263,8 +265,10 @@ class GAN_P2P():
             for batch_i in range(0, num_train, BATCH_SIZE):
                 # input = map, output = aerial
                 # get actual batch:
-                imgs_gen_real = aerial_train[batch_i:batch_i + BATCH_SIZE]
-                imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
+                # imgs_gen_real = aerial_train[batch_i:batch_i + BATCH_SIZE]
+                # imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_gen_real = map_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_cond = aerial_train[batch_i:batch_i + BATCH_SIZE]
                 num_samples = imgs_gen_real.shape[0]
 
                 # train discriminator
@@ -286,12 +290,14 @@ class GAN_P2P():
 
                 if rep % SAMPLE_INTERVAL == 0:
                     i = np.random.randint(low=0, high=num_test, size=3)
-                    img_batch = aerial_test[i], map_test[i]
+                    # img_batch = aerial_test[i], map_test[i]
+                    img_batch = map_test[i], aerial_test[i]
                     self.sample_images(epoch, rep, img_batch)
-                    img_batch = aerial_test[GENERATOR_EVOLUTION_INDIZES], map_test[
-                        GENERATOR_EVOLUTION_INDIZES]
+                    # img_batch = aerial_test[GENERATOR_EVOLUTION_INDIZES], map_test[GENERATOR_EVOLUTION_INDIZES]
+                    img_batch = map_test[GENERATOR_EVOLUTION_INDIZES], aerial_test[GENERATOR_EVOLUTION_INDIZES]
                     self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
                 rep += 1
+        self.save_generator()
 
     def generator_evolution(self, epoch, sample_interval, repetition, img_batch):
 
@@ -357,7 +363,38 @@ class GAN_P2P():
         fig.savefig(GENERATED_DATA_LOCATION + '{}_{}.png'.format(epoch+1, repetition))
         plt.close()
 
+    def save_generator(self):
+        self.generator.save_weights(MODEL_WEIGHTS_PATH + 'generator_weights.hdf5')
+
+    def load_generator(self):
+        self.generator.load_weights(MODEL_WEIGHTS_PATH + 'generator_weights.hdf5')
+
+    def apply_generator(self, tensor):
+        # expect input to be of shape (num_samples, height, width, channels)
+        tensor = np.array(tensor / 127.5 - 1, dtype=np.float32)
+        img_out = self.generator.predict(tensor)
+        return img_out
+
+
+def test_generator(num_images):
+    gan = GAN_P2P()
+    _, _, _, maps = data_io.load_dataset_maps(DATASET_PATH)
+    gan.load_generator()
+    p = np.random.permutation(maps.shape[0])
+    maps = maps[p]
+    aerials = gan.apply_generator(maps[:num_images, ...])
+
+    fig, axs = plt.subplots(2, num_images)
+    for i in range(num_images):
+        axs[0, i].imshow(maps[i, ...])
+        aerials[i, ...] = 0.5 * aerials[i, ...] + 0.5
+        axs[1, i].imshow(aerials[i, ...])
+    plt.show()
+
 
 if __name__ == '__main__':
     gan = GAN_P2P()
     gan.train_aerial_map()
+
+
+
