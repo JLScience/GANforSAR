@@ -195,11 +195,11 @@ def png2tif(im_png, im_tiff):
     imageio.imsave(im_tiff, im)
 
 
-im = imageio.imread('noise.png')
-print(im.shape)
-import matplotlib.pyplot as plt
-plt.hist(im.reshape(im.shape[0]*im.shape[1]*3), bins=256)
-plt.show()
+# im = imageio.imread('noise.png')
+# print(im.shape)
+# import matplotlib.pyplot as plt
+# plt.hist(im.reshape(im.shape[0]*im.shape[1]*3), bins=256)
+# plt.show()
 # png2tif('ROIs1868_summer_s1_4_p44.png', 'ROIs1868_summer_s1_4_p44.tiff')
 # impng = imageio.imread('ROIs1868_summer_s1_4_p151.png')
 # imageio.imsave('noise_sea.tiff', impng[:64, :64])
@@ -210,10 +210,56 @@ plt.show()
 
 # - - - - - Functions for other datasets - - - - -
 
+# USAGE: create_dataset_maps('ex_maps.hdf5', 'data/maps/')
 def create_dataset_maps(dataset_name, file_location):
-    im = imageio.imread(file_location + 'train/1.jpg')
+    shape = 600
+    channels = 3
+    training_location = file_location + 'train/'
+    test_location = file_location + 'val/'
+    print(training_location)
+    print(test_location)
+
+    f = h5py.File(file_location + dataset_name)
+
+    # training data:
+    files = os.listdir(training_location)
+    files.sort()
+    print('create training dataset ({} examples) ...'.format(len(files)))
+    aerial = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
+    map = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
+    for i, file in enumerate(files):
+        im = imageio.imread(training_location + file)
+        aerial[i, :, :, :] = im[:, :600, :]
+        map[i, :, :, :] = im[:, 600:, :]
+    print('save dataset ...')
+    f.create_dataset('aerial_train', data=aerial)
+    f.create_dataset('map_train', data=map)
+
+    # test data
+    files = os.listdir(test_location)
+    files.sort()
+    print('create test dataset ({} examples) ...'.format(len(files)))
+    aerial = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
+    map = np.zeros((len(files), shape, shape, channels), dtype=np.uint8)
+    for i, file in enumerate(files):
+        im = imageio.imread(test_location + file)
+        aerial[i, :, :, :] = im[:, :600, :]
+        map[i, :, :, :] = im[:, 600:, :]
+    print('save dataset ...')
+    f.create_dataset('aerial_test', data=aerial)
+    f.create_dataset('map_test', data=map)
+
+    f.close()
 
 
-create_dataset_maps('ex_maps.hdf5', 'data/maps/')
+# USAGE: atr, mtr, ate, mte = load_dataset_maps('data/maps/ex_maps.hdf5')
+def load_dataset_maps(path):
+    f = h5py.File(path)
+    aerial_train = np.array(f['aerial_train'])
+    map_train = np.array(f['map_train'])
+    aerial_test = np.array(f['aerial_test'])
+    map_test = np.array(f['map_test'])
+    return aerial_train, map_train, aerial_test, map_test
+
 
 # - - - - - ---------------------------- - - - - -
