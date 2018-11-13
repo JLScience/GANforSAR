@@ -30,3 +30,7 @@ bsub -gpu "num=1" -Is -tty /bin/bash
 
 # Datei kopieren:
 scp /media/jlscience/Volume/test.txt padc046@juron.fz-juelich.de:/gpfs/work/padc/padc046
+
+# tar entpacken:
+tar -xvzf file.tar.gz
+

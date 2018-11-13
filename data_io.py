@@ -212,7 +212,7 @@ def png2tif(im_png, im_tiff):
 
 # USAGE: create_dataset_maps('ex_maps.hdf5', 'data/maps/')
 def create_dataset_maps(dataset_name, file_location):
-    shape = 512
+    shape = 256
     channels = 3
     training_location = file_location + 'train/'
     test_location = file_location + 'val/'
