@@ -233,11 +233,13 @@ pip-selfcheck.json
 # --- MANUAL EDITED ---
 
 # Datasets
+data/
 *.hdf5
 
 # Satellite images (standard formats)
 *.mat
 *.png
+*.jpg
 *.tiff
 
 # Compiled python files

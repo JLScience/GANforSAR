@@ -188,4 +188,32 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
 # axs[3].imshow(yt[1000, :, :, 0], cmap='gray')
 # plt.show()
 
+
+# convert .png to .tiff files
+def png2tif(im_png, im_tiff):
+    im = imageio.imread(im_png)
+    imageio.imsave(im_tiff, im)
+
+
+im = imageio.imread('noise.png')
+print(im.shape)
+import matplotlib.pyplot as plt
+plt.hist(im.reshape(im.shape[0]*im.shape[1]*3), bins=256)
+plt.show()
+# png2tif('ROIs1868_summer_s1_4_p44.png', 'ROIs1868_summer_s1_4_p44.tiff')
+# impng = imageio.imread('ROIs1868_summer_s1_4_p151.png')
+# imageio.imsave('noise_sea.tiff', impng[:64, :64])
+# impng = imageio.imread('ROIs1868_summer_s1_0_p1.png')
+# imageio.imsave('noise_forest.tiff', impng[:64, :64])
+
+# - - - - - ---------------------------- - - - - -
+
+# - - - - - Functions for other datasets - - - - -
+
+def create_dataset_maps(dataset_name, file_location):
+    im = imageio.imread(file_location + 'train/1.jpg')
+
+
+create_dataset_maps('ex_maps.hdf5', 'data/maps/')
+
 # - - - - - ---------------------------- - - - - -
