@@ -172,16 +172,19 @@ class GAN_P2P():
     def train_sen12(self):
 
         if len(sys.argv) == 1:
-            dataset_nr = 0
+            dataset_nr = [0]
         else:
+            dataset_nr = []
+            for i in range(1, len(sys.argv)):
+                dataset_nr.append(sys.argv[i])
             dataset_nr = int(sys.argv[1])
 
-        os.mkdir(GENERATED_DATA_LOCATION + str(dataset_nr) + '/')
+        os.mkdir(GENERATED_DATA_LOCATION + str(len(dataset_nr)) + '_sets/')
 
         # load datasets:
         print('--- Load dataset number {} ...'.format(dataset_nr))
         dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=[dataset_nr], split_mode='same', split_ratio=0.90)
+            portion_mode=dataset_nr, split_mode='same', split_ratio=0.80)
 
         # normalize datasets:
         print('--- normalize datasets ...')
@@ -254,11 +257,11 @@ class GAN_P2P():
                 if rep % SAMPLE_INTERVAL == 0:
                     i = np.random.randint(low=0, high=num_test, size=3)
                     img_batch = dataset_sar_test[i], dataset_opt_test[i]
-                    self.sample_images(epoch, rep, img_batch)
+                    self.sample_images(epoch, rep, img_batch, dataset_nr)
                     img_batch = dataset_sar_test[GENERATOR_EVOLUTION_INDIZES], dataset_opt_test[GENERATOR_EVOLUTION_INDIZES]
-                    self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
+                    self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch, dataset_nr)
                 rep += 1
-        self.save_generator(str(dataset_nr))
+        self.save_generator(str(len(dataset_nr)) + '_sets')
 
     def train_aerial_map(self):
         # load datasets:
@@ -345,7 +348,7 @@ class GAN_P2P():
                 rep += 1
         self.save_generator()
 
-    def generator_evolution(self, epoch, sample_interval, repetition, img_batch):
+    def generator_evolution(self, epoch, sample_interval, repetition, img_batch, dataset_nr):
 
         imgs_gen_real, imgs_cond = img_batch
         imgs_gen = self.generator.predict(imgs_cond)
@@ -376,10 +379,10 @@ class GAN_P2P():
                 axs[i, 6].imshow(imgs_gen_real[i, :, :, 0], cmap='gray')
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
-            fig.savefig(GENERATED_DATA_LOCATION + str(sys.argv[1]) + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
+            fig.savefig(GENERATED_DATA_LOCATION + str(len(dataset_nr)) + '_sets/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
             plt.close()
 
-    def sample_images(self, epoch, repetition, img_batch):
+    def sample_images(self, epoch, repetition, img_batch, dataset_nr):
         r, c = 3, 3
 
         imgs_gen_real, imgs_cond = img_batch
@@ -405,7 +408,7 @@ class GAN_P2P():
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
-        fig.savefig(GENERATED_DATA_LOCATION + str(sys.argv[1]) + '/' + '{}_{}.png'.format(epoch+1, repetition))
+        fig.savefig(GENERATED_DATA_LOCATION + str(len(dataset_nr)) + '_sets/' + '{}_{}.png'.format(epoch+1, repetition))
         plt.close()
 
     def save_generator(self, name):
