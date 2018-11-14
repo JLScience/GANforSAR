@@ -177,14 +177,13 @@ class GAN_P2P():
             dataset_nr = []
             for i in range(1, len(sys.argv)):
                 dataset_nr.append(sys.argv[i])
-            dataset_nr = int(sys.argv[1])
 
         os.mkdir(GENERATED_DATA_LOCATION + str(len(dataset_nr)) + '_sets/')
 
         # load datasets:
         print('--- Load dataset number {} ...'.format(dataset_nr))
         dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=dataset_nr, split_mode='same', split_ratio=0.80)
+            portion_mode=dataset_nr, split_mode='same', split_ratio=0.50)
 
         # normalize datasets:
         print('--- normalize datasets ...')
