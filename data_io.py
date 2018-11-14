@@ -195,6 +195,35 @@ def png2tif(im_png, im_tiff):
     imageio.imsave(im_tiff, im)
 
 
+def img2noise(img_path, img_name, x, y, size):
+    img = imageio.imread(img_path + img_name)
+    img = img[y:y+size, x:x+size]
+    imageio.imsave(img_path + 'noise.tiff', img)
+
+
+# path = '/media/jlscience/Volume/Uni/Masterarbeit/SAR GAN/Sen1-2 Dataset/ROIs1868_summer/s1_0/'
+# img2noise(path, 'ROIs1868_summer_s1_0_p1.png', 0, 128, 64)
+
+
+def imgs2scene(imgs_path, img_name_tiff, num_imgs):
+    img_dim = 256
+    imgs_list = os.listdir(imgs_path)
+    imgs_list.sort()
+    if num_imgs > len(imgs_list):
+        num_imgs = imgs_list
+    scene = np.zeros((img_dim*num_imgs, img_dim), dtype=np.uint8)
+    for i, img in enumerate(imgs_list[:num_imgs]):
+        img = imageio.imread(imgs_path + img)
+        print(img_dim*i)
+        print(img_dim*(i+1))
+        scene[img_dim*i:img_dim*(i+1), :] = img
+    imageio.imsave(imgs_path + img_name_tiff, scene)
+
+
+# path = '/media/jlscience/Volume/Uni/Masterarbeit/SAR GAN/Sen1-2 Dataset/ROIs1868_summer/s1_0/'
+# imgs2scene(path, 'scene_10.tiff', 10)
+
+
 # im = imageio.imread('noise.png')
 # print(im.shape)
 # import matplotlib.pyplot as plt

@@ -1,3 +1,5 @@
+import sys
+import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -15,14 +17,14 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 100
+EPOCHS = 200
 BATCH_SIZE = 10
 SAMPLE_INTERVAL = 50
 GENERATOR_EVOLUTION_DATA = []
-GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
-GENERATED_DATA_LOCATION = 'generated_images/baseline/aerial_maps/'
-DATASET_PATH = 'data/maps/ex_maps_small.hdf5'
-MODEL_WEIGHTS_PATH = 'models/baseline/aerial_maps/'
+GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 29]
+GENERATED_DATA_LOCATION = 'generated_images/tests/'
+DATASET_PATH = ''
+MODEL_WEIGHTS_PATH = 'models/tests/64x64/'
 
 # - - - - - - - - - -
 
@@ -31,16 +33,16 @@ class GAN_P2P():
 
     def __init__(self):
         # image geometry
-        self.img_rows = 256
-        self.img_cols = 256
+        self.img_rows = 64
+        self.img_cols = 64
         self.channels_cond = 3
-        self.channels_gen = 3
+        self.channels_gen = 1
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
         self.img_shape_gen = (self.img_rows, self.img_cols, self.channels_gen)
 
         # number of filters in first layer of G and D
-        self.num_f_g = 64
-        self.num_f_d = 64
+        self.num_f_g = 32
+        self.num_f_d = 32
 
         # discriminator output shape
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
@@ -48,7 +50,7 @@ class GAN_P2P():
         opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
         opt_d = Adam(lr=0.0002, beta_1=0.5)
 
-        self.generator = self.make_generator()
+        self.generator = self.make_generator_64()
         print('--> Generator Model:')
         self.generator.summary()
 
@@ -111,6 +113,40 @@ class GAN_P2P():
 
         return Model(d0, output_image)
 
+    def make_generator_64(self):
+        def conv2d(layer_input, filters, f_size=4, bn=True):
+            d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
+            d = LeakyReLU(alpha=0.2)(d)
+            if bn:
+                d = BatchNormalization(momentum=0.8)(d)
+            return d
+
+        def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
+            u = UpSampling2D(size=2)(layer_input)
+            u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
+            if dropout_rate:
+                u = Dropout(dropout_rate)(u)
+            u = BatchNormalization(momentum=0.8)(u)
+            u = Concatenate()([u, skip_input])
+            return u
+
+        d0 = Input(shape=self.img_shape_cond)
+        d1 = conv2d(d0, self.num_f_g, bn=False)
+        d2 = conv2d(d1, self.num_f_g * 2)
+        d3 = conv2d(d2, self.num_f_g * 4)
+        d4 = conv2d(d3, self.num_f_g * 8)
+        d5 = conv2d(d4, self.num_f_g * 8)
+
+        u1 = deconv2d(d5, d4, self.num_f_g * 8)
+        u2 = deconv2d(u1, d3, self.num_f_g * 8)
+        u3 = deconv2d(u2, d4, self.num_f_g * 4)
+        u4 = deconv2d(u3, d1, self.num_f_g * 2)
+        u5 = UpSampling2D(size=2)(u4)
+
+        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u5)
+
+        return Model(d0, output_image)
+
     def make_discriminator(self):
         def discriminator_layer(layer_input, filters, f_size=4, bn=True):
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
@@ -133,12 +169,19 @@ class GAN_P2P():
 
         return Model([img_gen, img_cond], validity)
 
-    def train_sen12(self):
+    def train_sen12(self, dataset_nr):
+
+        if len(sys.argv) == 1:
+            dataset_nr = 0
+        else:
+            dataset_nr = int(sys.argv[1])
+
+        os.mkdir(GENERATED_DATA_LOCATION + str(dataset_nr) + '/')
 
         # load datasets:
-        print('--- Load datasets ...')
+        print('--- Load dataset number {} ...'.format(dataset_nr))
         dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=[18, 19, 20, 24], split_mode='same', split_ratio=0.95)
+            portion_mode=[dataset_nr], split_mode='same', split_ratio=0.90)
 
         # normalize datasets:
         print('--- normalize datasets ...')
@@ -151,26 +194,28 @@ class GAN_P2P():
         dataset_opt_train = np.array(dataset_opt_train / 127.5 - 1, dtype=np.float32)
         print('opt_train done')
 
-        # filter sar images:
-        print('--- filter sar datasets ...')
-        dataset_sar_test = augmentation.lee_filter_dataset(dataset_sar_test, window_size=3)
-        print('sar_test done')
-        dataset_sar_train = augmentation.lee_filter_dataset(dataset_sar_train, window_size=3)
-        print('sar_train done')
+        # # filter sar images:
+        # print('--- filter sar datasets ...')
+        # dataset_sar_test = augmentation.lee_filter_dataset(dataset_sar_test, window_size=3)
+        # print('sar_test done')
+        # dataset_sar_train = augmentation.lee_filter_dataset(dataset_sar_train, window_size=3)
+        # print('sar_train done')
 
         # cut images:
         print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, 2)
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, 4)
         print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, 2)
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, 4)
         print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, 2)
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, 4)
         print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, 2)
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, 4)
         print('opt_train done')
 
         num_train = dataset_opt_train.shape[0]
+        print('number of training samples: {}'.format(num_train))
         num_test = dataset_opt_test.shape[0]
+        print('number of test samples: {}'.format(num_test))
 
         # ground truths:
         valid = np.ones((BATCH_SIZE,) + self.disc_patch)
@@ -213,6 +258,7 @@ class GAN_P2P():
                     img_batch = dataset_sar_test[GENERATOR_EVOLUTION_INDIZES], dataset_opt_test[GENERATOR_EVOLUTION_INDIZES]
                     self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
                 rep += 1
+        self.save_generator(str(dataset_nr))
 
     def train_aerial_map(self):
         # load datasets:
@@ -331,7 +377,7 @@ class GAN_P2P():
                 axs[i, 6].imshow(imgs_gen_real[i])
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
-            fig.savefig(GENERATED_DATA_LOCATION + 'evolution_{}_{}.png'.format(epoch+1, repetition))
+            fig.savefig(GENERATED_DATA_LOCATION + str(sys.argv[1]) + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
             plt.close()
 
     def sample_images(self, epoch, repetition, img_batch):
@@ -360,14 +406,14 @@ class GAN_P2P():
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
-        fig.savefig(GENERATED_DATA_LOCATION + '{}_{}.png'.format(epoch+1, repetition))
+        fig.savefig(GENERATED_DATA_LOCATION + str(sys.argv[1]) + '/' + '{}_{}.png'.format(epoch+1, repetition))
         plt.close()
 
-    def save_generator(self):
-        self.generator.save_weights(MODEL_WEIGHTS_PATH + 'generator_weights.hdf5')
+    def save_generator(self, name):
+        self.generator.save_weights(MODEL_WEIGHTS_PATH + 'generator_weights_' + str(name) + '.hdf5')
 
-    def load_generator(self):
-        self.generator.load_weights(MODEL_WEIGHTS_PATH + 'generator_weights.hdf5')
+    def load_generator(self, name):
+        self.generator.load_weights(MODEL_WEIGHTS_PATH + 'generator_weights_' + str(name) + '.hdf5')
 
     def apply_generator(self, tensor):
         # expect input to be of shape (num_samples, height, width, channels)
@@ -394,7 +440,7 @@ def test_generator(num_images):
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    gan.train_aerial_map()
+    gan.train_sen12()
 
 
 
