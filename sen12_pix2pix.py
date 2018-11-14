@@ -440,7 +440,7 @@ def test_generator(num_images):
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    # gan.train_sen12()
+    gan.train_sen12()
 
 
 
