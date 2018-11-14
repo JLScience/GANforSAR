@@ -18,7 +18,7 @@ import augmentation
 
 # TRAINING VARIABLES:
 EPOCHS = 200
-BATCH_SIZE = 10
+BATCH_SIZE = 50
 SAMPLE_INTERVAL = 50
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 29]
@@ -401,7 +401,7 @@ class GAN_P2P():
                     axs[i, j].imshow(imgs_all[j][i])
                 # gray scale image:
                 else:
-                    axs[i, j].imshow(imgs_all[j][i, :, :, 0])
+                    axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
