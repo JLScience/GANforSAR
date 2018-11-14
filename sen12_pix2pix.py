@@ -369,12 +369,11 @@ class GAN_P2P():
                 # plot generated images:
                 for j in range(1, num_images_to_show + 1):
                     idx = int(j * repetition / (sample_interval * num_images_to_show))
-                    # axs[i, j].imshow(self.generator_evolution_data[idx][i, :, :, 0], cmap='gray')
-                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i])
+                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i, :, :, 0], cmap='gray')
                     axs[i, j].set_title(idx * sample_interval)
                     axs[i, j].axis('off')
                 # plot original image:
-                axs[i, 6].imshow(imgs_gen_real[i])
+                axs[i, 6].imshow(imgs_gen_real[i, :, :, 0], cmap='gray')
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
             fig.savefig(GENERATED_DATA_LOCATION + str(sys.argv[1]) + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
@@ -402,7 +401,7 @@ class GAN_P2P():
                     axs[i, j].imshow(imgs_all[j][i])
                 # gray scale image:
                 else:
-                    axs[i, j].imshow(imgs_all[j][i])
+                    axs[i, j].imshow(imgs_all[j][i, :, :, 0])
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
