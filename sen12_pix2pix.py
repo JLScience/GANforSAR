@@ -169,7 +169,7 @@ class GAN_P2P():
 
         return Model([img_gen, img_cond], validity)
 
-    def train_sen12(self, dataset_nr):
+    def train_sen12(self):
 
         if len(sys.argv) == 1:
             dataset_nr = 0
