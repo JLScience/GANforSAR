@@ -138,9 +138,9 @@ class GAN_P2P():
         d5 = conv2d(d4, self.num_f_g * 8)
 
         u1 = deconv2d(d5, d4, self.num_f_g * 8)
-        u2 = deconv2d(u1, d3, self.num_f_g * 8)
-        u3 = deconv2d(u2, d4, self.num_f_g * 4)
-        u4 = deconv2d(u3, d1, self.num_f_g * 2)
+        u2 = deconv2d(u1, d3, self.num_f_g * 4)
+        u3 = deconv2d(u2, d2, self.num_f_g * 2)
+        u4 = deconv2d(u3, d1, self.num_f_g)
         u5 = UpSampling2D(size=2)(u4)
 
         output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u5)
@@ -440,7 +440,7 @@ def test_generator(num_images):
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    gan.train_sen12()
+    # gan.train_sen12()
 
 
 
