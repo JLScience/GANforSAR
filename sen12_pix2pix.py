@@ -17,11 +17,11 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 200
+EPOCHS = 100
 BATCH_SIZE = 50
-SAMPLE_INTERVAL = 50
+SAMPLE_INTERVAL = 100
 GENERATOR_EVOLUTION_DATA = []
-GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 29]
+GENERATOR_EVOLUTION_INDIZES = [1, 100, 500, 1900]
 GENERATED_DATA_LOCATION = 'generated_images/tests/'
 DATASET_PATH = ''
 MODEL_WEIGHTS_PATH = 'models/tests/64x64/'
@@ -48,7 +48,7 @@ class GAN_P2P():
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
         opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
-        opt_d = Adam(lr=0.0002, beta_1=0.5)
+        opt_d = Adam(lr=0.00005, beta_1=0.5)
 
         self.generator = self.make_generator_64()
         print('--> Generator Model:')
@@ -246,14 +246,14 @@ class GAN_P2P():
                 # train generator:
                 g_loss = self.combined.train_on_batch(x=[imgs_gen_real, imgs_cond], y=[valid[:num_samples], imgs_gen_real])
 
-                print("[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
-                      "[D loss: {:05.3f}, acc: {:05.2f}%] \t [G loss: {:05.3f}]".format(epoch + 1, EPOCHS,
-                                                                                        int(batch_i / BATCH_SIZE),
-                                                                                        int(num_train / BATCH_SIZE),
-                                                                                        d_loss[0], 100 * d_loss[1],
-                                                                                        g_loss[0]))
-
                 if rep % SAMPLE_INTERVAL == 0:
+                    print("[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
+                          "[D loss: {:05.3f}, acc: {:05.2f}%] \t [G loss: {:05.3f}]".format(epoch + 1, EPOCHS,
+                                                                                            int(batch_i / BATCH_SIZE),
+                                                                                            int(num_train / BATCH_SIZE),
+                                                                                            d_loss[0], 100 * d_loss[1],
+                                                                                            g_loss[0]))
+
                     i = np.random.randint(low=0, high=num_test, size=3)
                     img_batch = dataset_sar_test[i], dataset_opt_test[i]
                     self.sample_images(epoch, rep, img_batch, dataset_nr)
