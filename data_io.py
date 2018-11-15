@@ -237,6 +237,48 @@ def imgs2scene(imgs_path, img_name_tiff, num_imgs):
 
 # - - - - - ---------------------------- - - - - -
 
+
+# - - - - - Functions for EuroSAT dataset - - - - -
+
+def create_dataset_eurosat(path):
+    img_size = 64
+    img_channels = 3
+    labels = os.listdir(path)
+    print(labels)
+    f = h5py.File(path + 'dataset.hdf5')
+    for label in labels:
+        num_labels = len(os.listdir(path + label))
+        tensor = np.zeros((num_labels, img_size, img_size, img_channels), dtype=np.uint8)
+        for i in range(num_labels):
+            name = path + label + '/' + label + '_' + str(i+1) + '.jpg'
+            tensor[i, :, :, :] = imageio.imread(name)
+        # print('mean values for label {}: R: {}  G: {}  B: {}'.format(label, int(np.mean(tensor[:, :, :, 0])), int(np.mean(tensor[:, :, :, 1])), int(np.mean(tensor[:, :, :, 2]))))
+        f.create_dataset(label, data=tensor)
+        print(label + ' saved.')
+
+
+def load_dataset_eurosat(path='data/EuroSAT/', mode='all'):
+    names = ['Highway', 'SeaLake', 'Industrial', 'River', 'PermanentCrop',
+             'Forest', 'AnnualCrop', 'HerbaceousVegetation', 'Pasture', 'Residential']
+    f = h5py.File(path + 'dataset.hdf5')
+    if mode in names:
+        data = np.array(f[mode])
+    if mode == 'all':
+        data = np.zeros((0, 64, 64, 3), dtype=np.uint8)
+        for name in names:
+            data = np.append(data, np.array(f[name]), 0)
+    return data
+
+
+def divide_dataset_eurosat(val_fraction, test_fraction, path='data/EuroSAT/', mode='all'):
+    pass
+
+# create_dataset_eurosat('data/EuroSAT/')
+# data = load_dataset_eurosat(mode='all')
+
+# - - - - - ----------------------------- - - - - -
+
+
 # - - - - - Functions for other datasets - - - - -
 
 # USAGE: create_dataset_maps('ex_maps.hdf5', 'data/maps/')
