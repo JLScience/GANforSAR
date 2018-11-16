@@ -40,8 +40,8 @@ class GAN_P2P():
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
         self.img_shape_gen = (self.img_rows, self.img_cols, self.channels_gen)
 
-        # number of filters in first layer of G and D
-        self.num_f_g = 32
+        # base number of filters
+        self.num_f_g = 64
         self.num_f_d = 32
 
         # discriminator output shape
