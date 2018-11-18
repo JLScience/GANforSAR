@@ -84,7 +84,7 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
 
     # Load datasets:
     if type(portion_mode) == list:
-        print('input is list')
+        print('--> Load Sen12 data: input is list')
         for num in portion_mode:
             opt_dataset_name = 's2_{}'.format(num)
             sar_dataset_name = 's1_{}'.format(num)
@@ -93,7 +93,7 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
             datasets.append([opt, sar])
             sizes.append(opt.shape[0])
     elif type(portion_mode) == float:
-        print('input is float')
+        print('--> Load Sen12 data: input is float')
         index_list = np.array(f_opt['index_list'])
         idx = 0
         while np.sum(sizes) < portion_mode * dataset_size:
@@ -106,7 +106,7 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
             sizes.append(opt.shape[0])
             idx += 1
     else:
-        print('incorrect input for parameter <portion_mode>')
+        print('--> Load Sen12 data: incorrect input for parameter <portion_mode>')
         return -1
 
     # Split datasets:
@@ -148,33 +148,33 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
             sar_train[sample_counter:sample_counter+sizes[idx], ...] = datasets[idx][1]
             sample_counter += sizes[idx]
             idx += 1
-            print('sample counter: {}'.format(sample_counter))
-            print('idx: {}'.format(idx))
+            # print('sample counter: {}'.format(sample_counter))
+            # print('idx: {}'.format(idx))
         # split scene to match split_ratio:
         remainder = num_samples_train-sample_counter
         opt_train[sample_counter:, ...] = datasets[idx][0][:remainder, ...]
         sar_train[sample_counter:, ...] = datasets[idx][1][:remainder, ...]
-        print('-- remainder: {}'.format(remainder))
+        # print('-- remainder: {}'.format(remainder))
         sample_counter = sizes[idx] - remainder
         opt_test[:sample_counter] = datasets[idx][0][remainder:, ...]
         sar_test[:sample_counter] = datasets[idx][1][remainder:, ...]
         idx += 1
-        print('sample counter {}'.format(sample_counter))
-        print('idx: {}'.format(idx))
+        # print('sample counter {}'.format(sample_counter))
+        print('--> Load Sen12 data: split dataset at index: {}'.format(idx))
         # put remaining data into test set:
         for i in range(idx, len(sizes)):
             opt_test[sample_counter:sample_counter+sizes[idx], ...] = datasets[idx][0]
             sar_test[sample_counter:sample_counter+sizes[idx], ...] = datasets[idx][1]
             sample_counter += sizes[idx]
             idx += 1
-            print('sample counter {}'.format(sample_counter))
-            print('idx: {}'.format(idx))
+            # print('sample counter {}'.format(sample_counter))
+            # print('idx: {}'.format(idx))
     else:
-        print('incorrect input for parameter <split_mode>')
+        print('--> Load Sen12 data: incorrect input for parameter <split_mode>')
         return -1
 
-    print('{} samples have been loaded ({} training, {} test).'.format(
-        num_samples, num_samples_train, num_samples - num_samples_train))
+    print('--> Load Sen12 data: {} samples have been loaded ({} training, {} test, split ratio: {}).'.format(
+        num_samples, num_samples_train, num_samples - num_samples_train, split_ratio))
 
     return opt_train, sar_train, opt_test, sar_test
 

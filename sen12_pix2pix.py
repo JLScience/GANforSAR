@@ -196,6 +196,17 @@ class GAN_P2P():
             dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
                 portion_mode=dataset_nr, split_mode='same', split_ratio=0.50)
 
+        # cut images (from 256x256 to 64x64):
+        print('--- divide images ...')
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=1)
+        print('sar_test done')
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=1)
+        print('opt_test done')
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=1)
+        print('sar_train done')
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=1)
+        print('opt_train done')
+
         # normalize datasets:
         print('--- normalize datasets ...')
         dataset_sar_test = np.array(dataset_sar_test / 127.5 - 1, dtype=np.float32)
@@ -213,17 +224,6 @@ class GAN_P2P():
         # print('sar_test done')
         # dataset_sar_train = augmentation.lee_filter_dataset(dataset_sar_train, window_size=3)
         # print('sar_train done')
-
-        # cut images (from 256x256 to 64x64):
-        print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=1)
-        print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=1)
-        print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=1)
-        print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=1)
-        print('opt_train done')
 
         num_train = dataset_opt_train.shape[0]
         print('number of training samples: {}'.format(num_train))

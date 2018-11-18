@@ -110,13 +110,11 @@ def split_images(dataset, factor, num_images_per_split=0):
     for i in range(factor):
         for j in range(factor):
             if num_images_per_split == 0:
-                new_dset[counter * num:(counter + 1) * num, :, :, :] = dataset[:, i * w:(i + 1) * w, j * w:(j + 1) * w,
-                                                                       :]
+                new_dset[counter * num:(counter+1)*num, :, :, :] = dataset[:, i*w:(i+1)*w, j*w:(j+1)*w, :]
                 counter += 1
             else:
                 if i == j and i in ind_list:
-                    new_dset[counter * num:(counter + 1) * num, :, :, :] = dataset[:, i * w:(i + 1) * w,
-                                                                           j * w:(j + 1) * w, :]
+                    new_dset[counter*num:(counter+1)*num, :, :, :] = dataset[:, i*w:(i+1)*w, j*w:(j+1)*w, :]
                     counter += 1
 
     return new_dset
@@ -298,5 +296,3 @@ def test_split_images():
     plt.show()
 
 # - - - - - - - - - - - - - - -
-
-test_split_images()
