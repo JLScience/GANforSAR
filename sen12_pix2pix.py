@@ -176,17 +176,25 @@ class GAN_P2P():
             dataset_nr = [0]
             name_string = name_string + '_0'
         else:
-            dataset_nr = []
-            for i in range(1, len(sys.argv)):
-                dataset_nr.append(sys.argv[i])
-                name_string = name_string + '_' + str(sys.argv[i])
+            if sys.argv[1] == '-1':
+                dataset_nr = -1
+                name_string = name_string + '_all'
+            else:
+                dataset_nr = []
+                for i in range(1, len(sys.argv)):
+                    dataset_nr.append(sys.argv[i])
+                    name_string = name_string + '_' + str(sys.argv[i])
 
         os.mkdir(GENERATED_DATA_LOCATION + name_string)
 
         # load datasets:
-        print('--- Load dataset number(s) {} ...'.format(dataset_nr))
-        dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=dataset_nr, split_mode='same', split_ratio=0.50)
+        if dataset_nr == -1:
+            dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
+                portion_mode=1.0, split_mode='separated', split_ratio=0.6)
+        else:
+            print('--- Load dataset number(s) {} ...'.format(dataset_nr))
+            dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
+                portion_mode=dataset_nr, split_mode='same', split_ratio=0.50)
 
         # normalize datasets:
         print('--- normalize datasets ...')
@@ -206,15 +214,15 @@ class GAN_P2P():
         # dataset_sar_train = augmentation.lee_filter_dataset(dataset_sar_train, window_size=3)
         # print('sar_train done')
 
-        # cut images:
+        # cut images (from 256x256 to 64x64):
         print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, 4)
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=1)
         print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, 4)
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=1)
         print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, 4)
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=1)
         print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, 4)
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=1)
         print('opt_train done')
 
         num_train = dataset_opt_train.shape[0]
