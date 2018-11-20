@@ -48,8 +48,9 @@ class GAN_P2P():
         # discriminator output shape
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
-        opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
-        opt_d = Adam(lr=0.00002, beta_1=0.5)
+        # opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
+        opt_g = Adam(lr=0.0005, beta_1=0.5)
+        opt_d = Adam(lr=0.00001, beta_1=0.5)
 
         self.generator = self.make_generator_64()
         print('--> Generator Model:')
