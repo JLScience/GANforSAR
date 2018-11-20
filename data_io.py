@@ -257,11 +257,11 @@ def create_dataset_eurosat(path):
         print(label + ' saved.')
 
 
-def load_dataset_eurosat(path='data/EuroSAT/', mode='all'):
+def load_dataset_eurosat(path='data/EuroSAT/dataset.hdf5', mode='all'):
     # alphabetical order
     names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
              'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
-    f = h5py.File(path + 'dataset.hdf5')
+    f = h5py.File(path)
     if mode in names:
         data = np.array(f[mode])
     if mode == 'all':
