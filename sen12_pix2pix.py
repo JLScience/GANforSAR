@@ -1,6 +1,7 @@
 import sys
 import os
 import numpy as np
+import h5py
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -444,6 +445,22 @@ class GAN_P2P():
         return img_out
 
 
+def translate_eurosat(model_name):
+    gan = GAN_P2P()
+    # gan.train_sen12()
+    gan.load_generator(model_name)
+    data = data_io.load_dataset_eurosat()
+    f = h5py.File('data/EuroSAT/dataset_translated.hdf5')
+    names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
+             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
+    for i, d in enumerate(data):
+        print('Translate set {}: {} ...'.format(i, names[i]))
+        d_t = gan.apply_generator(d)
+        d_t = (d_t + 1) * 127.5
+        d_t = np.array(np.round(d_t), dtype=np.uint8)
+        f.create_dataset(name=names[i], data=d_t)
+
+
 def test_generator(num_images):
     gan = GAN_P2P()
     _, _, _, maps = data_io.load_dataset_maps(DATASET_PATH)
@@ -460,9 +477,8 @@ def test_generator(num_images):
     plt.show()
 
 
+
 if __name__ == '__main__':
     gan = GAN_P2P()
     gan.train_sen12()
-
-
-
+    # translate_eurosat('sets_18_19_20_24_39_49_53')
