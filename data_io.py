@@ -258,23 +258,50 @@ def create_dataset_eurosat(path):
 
 
 def load_dataset_eurosat(path='data/EuroSAT/', mode='all'):
-    names = ['Highway', 'SeaLake', 'Industrial', 'River', 'PermanentCrop',
-             'Forest', 'AnnualCrop', 'HerbaceousVegetation', 'Pasture', 'Residential']
+    # alphabetical order
+    names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
+             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
     f = h5py.File(path + 'dataset.hdf5')
     if mode in names:
         data = np.array(f[mode])
     if mode == 'all':
-        data = np.zeros((0, 64, 64, 3), dtype=np.uint8)
+        data = []
         for name in names:
-            data = np.append(data, np.array(f[name]), 0)
+            data.append(np.array(f[name], dtype=np.uint8))
     return data
 
 
 def divide_dataset_eurosat(val_fraction, test_fraction, path='data/EuroSAT/', mode='all'):
-    pass
+    data = load_dataset_eurosat(path=path, mode=mode)
+    img_shape = (data[0].shape[1], data[0].shape[2], data[0].shape[3])
+    # num_samples = 0
+    # for d in data:
+    #     num_samples += d.shape[0]
+    x_train = np.zeros((0, ) + img_shape, dtype=np.uint8)
+    y_train = np.zeros(0, dtype=np.uint8)
+    x_val = np.zeros((0,) + img_shape, dtype=np.uint8)
+    y_val = np.zeros(0, dtype=np.uint8)
+    x_test = np.zeros((0,) + img_shape, dtype=np.uint8)
+    y_test = np.zeros(0, dtype=np.uint8)
+    for i, d in enumerate(data):
+        num_val = int(d.shape[0] * val_fraction)
+        num_test = int(d.shape[0] * test_fraction)
+        num_train = d.shape[0] - num_val - num_test
+        x_train = np.append(x_train, d[0:num_train, ...], axis=0)
+        y_train = np.append(y_train, i*np.ones(num_train), axis=0)
+        x_val = np.append(x_val, d[num_train:num_train+num_val, ...], axis=0)
+        y_val = np.append(y_val, i*np.ones(num_val), axis=0)
+        x_test = np.append(x_test, d[num_train+num_val:, ...], axis=0)
+        y_test = np.append(y_test, i*np.ones(num_test), axis=0)
+    return x_train, y_train, x_val, y_val, x_test, y_test
+
 
 # create_dataset_eurosat('data/EuroSAT/')
 # data = load_dataset_eurosat(mode='all')
+# x_train, y_train, x_val, y_val, x_test, y_test = divide_dataset_eurosat(0.1, 0.1)
+# import matplotlib.pyplot as plt
+# plt.plot(y_val)
+# plt.show()
 
 # - - - - - ----------------------------- - - - - -
 
