@@ -99,7 +99,7 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
         while np.sum(sizes) < portion_mode * dataset_size:
             opt_dataset_name = 's2_{}'.format(index_list[idx])
             sar_dataset_name = 's1_{}'.format(index_list[idx])
-            print(opt_dataset_name)
+            print('--> Load Sen12 data: ' + opt_dataset_name)
             opt = np.array(f_opt[opt_dataset_name])
             sar = np.array(f_sar[sar_dataset_name])
             datasets.append([opt, sar])
@@ -160,7 +160,7 @@ def load_Sen12_data(path='data/Sen1-2/summer/', portion_mode=1.0, split_mode='sa
         sar_test[:sample_counter] = datasets[idx][1][remainder:, ...]
         idx += 1
         # print('sample counter {}'.format(sample_counter))
-        print('--> Load Sen12 data: split dataset at index: {}'.format(idx))
+        print('--> Load Sen12 data: split dataset at index: {}'.format(index_list[idx]))
         # put remaining data into test set:
         for i in range(idx, len(sizes)):
             opt_test[sample_counter:sample_counter+sizes[idx], ...] = datasets[idx][0]
