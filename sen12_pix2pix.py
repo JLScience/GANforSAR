@@ -19,6 +19,7 @@ import augmentation
 # TRAINING VARIABLES:
 EPOCHS = 100
 BATCH_SIZE = 50
+IMAGES_PER_SPLIT = 1
 SAMPLE_INTERVAL = 100
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 100, 500, 1900]
@@ -48,7 +49,7 @@ class GAN_P2P():
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
         opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
-        opt_d = Adam(lr=0.00005, beta_1=0.5)
+        opt_d = Adam(lr=0.00002, beta_1=0.5)
 
         self.generator = self.make_generator_64()
         print('--> Generator Model:')
@@ -190,7 +191,7 @@ class GAN_P2P():
         # load datasets:
         if dataset_nr == -1:
             dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-                portion_mode=1.0, split_mode='separated', split_ratio=0.6)
+                portion_mode=1.0, split_mode='separated', split_ratio=0.8)
         else:
             print('--- Load dataset number(s) {} ...'.format(dataset_nr))
             dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
@@ -198,13 +199,13 @@ class GAN_P2P():
 
         # cut images (from 256x256 to 64x64):
         print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=4)
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
         print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=4)
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
         print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=4)
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
         print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=4)
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
         print('opt_train done')
 
         # normalize datasets:
