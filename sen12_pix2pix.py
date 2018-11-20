@@ -17,7 +17,7 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 100
+EPOCHS = 150
 BATCH_SIZE = 50
 IMAGES_PER_SPLIT = 1
 SAMPLE_INTERVAL = 100
@@ -179,8 +179,12 @@ class GAN_P2P():
             name_string = name_string + '_0'
         else:
             if sys.argv[1] == '-1':
-                dataset_nr = -1
-                name_string = name_string + '_all'
+                if sys.argv[2] == 'same':
+                    dataset_nr = -2
+                    name_string = name_string + '_all_same'
+                else:
+                    dataset_nr = -1
+                    name_string = name_string + '_all_separated'
             else:
                 dataset_nr = []
                 for i in range(1, len(sys.argv)):
@@ -190,9 +194,13 @@ class GAN_P2P():
         os.mkdir(GENERATED_DATA_LOCATION + name_string)
 
         # load datasets:
-        if dataset_nr == -1:
-            dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-                portion_mode=1.0, split_mode='separated', split_ratio=0.8)
+        if dataset_nr < 0:
+            if dataset_nr == -2:
+                dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
+                    portion_mode=1.0, split_mode='same', split_ratio=0.8)
+            else:
+                dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
+                    portion_mode=1.0, split_mode='separated', split_ratio=0.8)
         else:
             print('--- Load dataset number(s) {} ...'.format(dataset_nr))
             dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
