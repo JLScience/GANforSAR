@@ -52,3 +52,10 @@
 # # print(new_dset[20, :, :, 0])
 # # print(new_dset[30, :, :, 0])
 # print(new_dset.shape)
+
+# import keras
+# resnet50 = keras.applications.resnet50.ResNet50()
+# resnet50.summary()
+#
+# vgg16 = keras.applications.vgg16.VGG16()
+# vgg16.summary()

@@ -8,13 +8,15 @@ from keras.optimizers import Adam
 import data_io
 
 MODEL_WEIGHTS_PATH = 'models/'
-EPOCHS = 20
+EPOCHS = 2
 BATCH_SIZE = 50
 
 class Custom_VGG16():
 
     def __init__(self):
         self.num_classes = 10
+        self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
+                            'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
         self.input_shape = (64, 64, 3)
         self.classifier = self.build_model()
         self.classifier.summary()
@@ -45,12 +47,20 @@ class Custom_VGG16():
         x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
         y_train = keras.utils.to_categorical(y_train, self.num_classes)
         y_val = keras.utils.to_categorical(y_val, self.num_classes)
-        y_test = keras.utils.to_categorical(y_test, self.num_classes)
+        # y_test = keras.utils.to_categorical(y_test, self.num_classes)
 
         # train classifier
         self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(x_val, y_val), verbose=2)
-        loss, acc = self.classifier.evaluate(x_test, y_test)
+        loss, acc = self.classifier.evaluate(x_test, keras.utils.to_categorical(y_test, self.num_classes))
         print(loss, acc)
+
+        conf = np.zeros((self.num_classes, self.num_classes))
+        for i in range(self.num_classes):
+            x = x_test[y_test == i]
+            y_pred = np.argmax(self.classifier.predict(x), axis=1)
+            for j in range(self.num_classes):
+                conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
+        print(np.round(conf, 2))
 
         # TODO: save weights (in between)
 
@@ -73,13 +83,31 @@ class Custom_VGG16():
 
         y_train = keras.utils.to_categorical(y_train, self.num_classes)
         y_val = keras.utils.to_categorical(y_val, self.num_classes)
-        y_test = keras.utils.to_categorical(y_test, self.num_classes)
+        # y_test = keras.utils.to_categorical(y_test, self.num_classes)
 
-        # TODO: train classifier
+        # train classifier
         self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(x_val, y_val),
                             verbose=2)
-        loss, acc = self.classifier.evaluate(x_test, y_test)
+        loss, acc = self.classifier.evaluate(x_test, keras.utils.to_categorical(y_test, self.num_classes))
         print(loss, acc)
+
+        # generate confusion matrix
+        conf = np.zeros((self.num_classes, self.num_classes))
+        for i in range(self.num_classes):
+            x = x_test[y_test == i]
+            y_pred = np.argmax(self.classifier.predict(x), axis=1)
+            for j in range(self.num_classes):
+                conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
+        print(np.round(conf, 2))
+        import matplotlib.pyplot as plt
+        plt.imshow(conf)
+        plt.colorbar()
+        plt.xlabel('correct class')
+        plt.ylabel('predicted class')
+        plt.xticks(np.arange(10), self.class_names, rotation=90)
+        plt.yticks(np.arange(10), self.class_names)
+        plt.show()
+
 
         # TODO: save weights (in between)
 

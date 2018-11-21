@@ -271,7 +271,7 @@ def load_dataset_eurosat(path='data/EuroSAT/dataset.hdf5', mode='all'):
     return data
 
 
-def divide_dataset_eurosat(val_fraction, test_fraction, path='data/EuroSAT/', mode='all'):
+def divide_dataset_eurosat(val_fraction, test_fraction, path='data/EuroSAT/dataset.hdf5', mode='all'):
     data = load_dataset_eurosat(path=path, mode=mode)
     img_shape = (data[0].shape[1], data[0].shape[2], data[0].shape[3])
     # num_samples = 0
