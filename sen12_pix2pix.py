@@ -56,9 +56,14 @@ class GAN_P2P():
         print('--> Generator Model:')
         self.generator.summary()
 
+        print(' x x x x x ')
+        print(sys.argv[1])
+        print(len(sys.argv))
+        print(sys.argv[2])
         if sys.argv[1] < 0 and len(sys.argv) > 2:
             self.load_generator(sys.argv[2])
             print('Loaded pre-trained model ' + sys.argv[2])
+        print(' x x x x x ')
 
         self.discriminator = self.make_discriminator()
         print('--> Discriminator Model:')
