@@ -193,7 +193,7 @@ class GAN_P2P():
                 for i in range(1, len(sys.argv)):
                     dataset_nr.append(sys.argv[i])
                     name_string = name_string + '_' + str(sys.argv[i])
-            if sys.args[1] < 0 and len(sys.argv) > 2:
+            if sys.argv[1] < 0 and len(sys.argv) > 2:
                 name_string = name_string + '_pretrained'
 
         os.mkdir(GENERATED_DATA_LOCATION + name_string)
