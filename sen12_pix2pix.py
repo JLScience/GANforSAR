@@ -56,7 +56,7 @@ class GAN_P2P():
         print('--> Generator Model:')
         self.generator.summary()
 
-        if sys.args[1] < 0 and len(sys.argv) > 2:
+        if sys.argv[1] < 0 and len(sys.argv) > 2:
             self.load_generator(sys.argv[2])
             print('Loaded pre-trained model ' + sys.argv[2])
 
