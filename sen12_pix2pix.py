@@ -49,25 +49,18 @@ class GAN_P2P():
         # discriminator output shape
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
-        self.opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
+        # self.opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
+        self.opt_g = Adam(lr=0.00002, beta_1=0.5)
         self.opt_d = Adam(lr=0.00005, beta_1=0.5)
 
         self.generator = self.make_generator_64()
         print('--> Generator Model:')
         self.generator.summary()
 
-        print(' x x x x x ')
-        print(sys.argv[1])
-        print(len(sys.argv))
-        print(sys.argv[2])
-        print(' y y y y y ')
-        print(int(sys.argv[1]) < 0)
-        print(len(sys.argv) > 2)
-        print(sys.argv[1] < 0 and len(sys.argv) > 2)
+        # PRE TRAINING
         if int(sys.argv[1]) < 0 and len(sys.argv) > 2:
             self.load_generator(sys.argv[2])
             print('Loaded pre-trained model ' + sys.argv[2])
-        print(' x x x x x ')
 
         self.discriminator = self.make_discriminator()
         print('--> Discriminator Model:')
