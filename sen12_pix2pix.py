@@ -61,10 +61,10 @@ class GAN_P2P():
         print(len(sys.argv))
         print(sys.argv[2])
         print(' y y y y y ')
-        print(sys.argv[1] < 0)
+        print(int(sys.argv[1]) < 0)
         print(len(sys.argv) > 2)
         print(sys.argv[1] < 0 and len(sys.argv) > 2)
-        if sys.argv[1] < 0 and len(sys.argv) > 2:
+        if int(sys.argv[1]) < 0 and len(sys.argv) > 2:
             self.load_generator(sys.argv[2])
             print('Loaded pre-trained model ' + sys.argv[2])
         print(' x x x x x ')
@@ -202,7 +202,7 @@ class GAN_P2P():
                 for i in range(1, len(sys.argv)):
                     dataset_nr.append(sys.argv[i])
                     name_string = name_string + '_' + str(sys.argv[i])
-            if sys.argv[1] < 0 and len(sys.argv) > 2:
+            if int(sys.argv[1]) < 0 and len(sys.argv) > 2:
                 name_string = name_string + '_pretrained'
 
         os.mkdir(GENERATED_DATA_LOCATION + name_string)
