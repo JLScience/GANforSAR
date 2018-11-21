@@ -50,7 +50,7 @@ class GAN_P2P():
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
         # self.opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
-        self.opt_g = Adam(lr=0.00002, beta_1=0.5)
+        self.opt_g = Adam(lr=0.0002, beta_1=0.5)
         self.opt_d = Adam(lr=0.00005, beta_1=0.5)
 
         self.generator = self.make_generator_64()
