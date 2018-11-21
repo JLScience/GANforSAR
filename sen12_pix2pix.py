@@ -60,6 +60,10 @@ class GAN_P2P():
         print(sys.argv[1])
         print(len(sys.argv))
         print(sys.argv[2])
+        print(' y y y y y ')
+        print(sys.argv[1] < 0)
+        print(len(sys.argv) > 2)
+        print(sys.argv[1] < 0 and len(sys.argv) > 2)
         if sys.argv[1] < 0 and len(sys.argv) > 2:
             self.load_generator(sys.argv[2])
             print('Loaded pre-trained model ' + sys.argv[2])
