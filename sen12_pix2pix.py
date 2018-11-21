@@ -49,20 +49,23 @@ class GAN_P2P():
         # discriminator output shape
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
-        # opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
-        opt_g = Adam(lr=0.0005, beta_1=0.5)
-        opt_d = Adam(lr=0.00001, beta_1=0.5)
+        self.opt_g = Adam(lr=0.0002, beta_1=0.5)  # pix2pix version
+        self.opt_d = Adam(lr=0.00005, beta_1=0.5)
 
         self.generator = self.make_generator_64()
         print('--> Generator Model:')
         self.generator.summary()
+
+        if sys.args[1] < 0 and len(sys.argv) > 2:
+            self.load_generator(sys.argv[2])
+            print('Loaded pre-trained model ' + sys.argv[2])
 
         self.discriminator = self.make_discriminator()
         print('--> Discriminator Model:')
         self.discriminator.summary()
 
         # --- compile discriminator model:
-        self.discriminator.compile(loss='mse', optimizer=opt_d, metrics=['accuracy'])
+        self.discriminator.compile(loss='mse', optimizer=self.opt_d, metrics=['accuracy'])
 
         # --- compile generator model:
         self.discriminator.trainable = False
@@ -73,7 +76,7 @@ class GAN_P2P():
         validity = self.discriminator([img_gen, img_cond])
         # build and compile model:
         self.combined = Model(inputs=[img_gen_real, img_cond], outputs=[validity, img_gen])
-        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 100], optimizer=opt_g)
+        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 100], optimizer=self.opt_g)
         print('--> Combined Generator Model:')
         self.combined.summary()
 
@@ -180,23 +183,24 @@ class GAN_P2P():
             name_string = name_string + '_0'
         else:
             if sys.argv[1] == '-1':
-                if sys.argv[2] == 'same':
-                    dataset_nr = -2
-                    name_string = name_string + '_all_same'
-                else:
-                    dataset_nr = -1
-                    name_string = name_string + '_all_separated'
+                dataset_nr = -1
+                name_string = name_string + '_all_same'
+            elif sys.argv[1] == '-2':
+                dataset_nr = -2
+                name_string = name_string + '_all_separated'
             else:
                 dataset_nr = []
                 for i in range(1, len(sys.argv)):
                     dataset_nr.append(sys.argv[i])
                     name_string = name_string + '_' + str(sys.argv[i])
+            if sys.args[1] < 0 and len(sys.argv) > 2:
+                name_string = name_string + '_pretrained'
 
         os.mkdir(GENERATED_DATA_LOCATION + name_string)
 
         # load datasets:
         if dataset_nr < 0:
-            if dataset_nr == -2:
+            if dataset_nr == -1:
                 dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
                     portion_mode=1.0, split_mode='same', split_ratio=0.8)
             else:
