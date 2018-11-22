@@ -59,3 +59,24 @@
 #
 # vgg16 = keras.applications.vgg16.VGG16()
 # vgg16.summary()
+
+# import sys
+#
+# lr_d = 0.1
+# lr_g = 0.2
+# print(sys.argv)
+# idz = []
+# for idx, arg in enumerate(sys.argv):
+#     if 'd' in arg:
+#         lr_d = float(arg.replace('d_', ''))
+#         idz.append(idx)
+#         # sys.argv.pop(idx)
+#     if 'g' in arg:
+#         lr_g = float(arg.replace('g_', ''))
+#         idz.append(idx)
+#         # sys.argv.pop(idx)
+# for i in idz[::-1]:
+#     sys.argv.pop(i)
+# print(sys.argv)
+# print(lr_d)
+# print(lr_g)
