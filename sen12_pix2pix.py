@@ -18,7 +18,7 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 100
+EPOCHS = 120
 BATCH_SIZE = 50
 IMAGES_PER_SPLIT = 4
 SAMPLE_INTERVAL = 100
