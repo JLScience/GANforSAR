@@ -20,7 +20,7 @@ import augmentation
 # TRAINING VARIABLES:
 EPOCHS = 200
 BATCH_SIZE = 50
-IMAGES_PER_SPLIT = 2
+IMAGES_PER_SPLIT = 4
 SAMPLE_INTERVAL = 100
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 100, 500, 1900]
@@ -75,9 +75,10 @@ class GAN_P2P():
         self.generator.summary()
 
         # PRE TRAINING
-        if int(sys.argv[1]) < 0 and len(sys.argv) > 2:
-            self.load_generator(sys.argv[2])
-            print('Loaded pre-trained model ' + sys.argv[2])
+        if len(sys.argv) > 1:
+            if int(sys.argv[1]) < 0 and len(sys.argv) > 2:
+                self.load_generator(sys.argv[2])
+                print('Loaded pre-trained model ' + sys.argv[2])
 
         self.discriminator = self.make_discriminator()
         print('--> Discriminator Model:')
@@ -479,7 +480,7 @@ def translate_eurosat(model_name):
     # gan.train_sen12()
     gan.load_generator(model_name)
     data = data_io.load_dataset_eurosat()
-    f = h5py.File('data/EuroSAT/dataset_translated.hdf5')
+    f = h5py.File('data/EuroSAT/dataset_translated_real_1.hdf5')
     names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
              'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
     for i, d in enumerate(data):
@@ -506,8 +507,7 @@ def test_generator(num_images):
     plt.show()
 
 
-
 if __name__ == '__main__':
     gan = GAN_P2P()
     gan.train_sen12()
-    # translate_eurosat('sets_18_19_20_24_39_49_53')
+    # translate_eurosat('real_1')
