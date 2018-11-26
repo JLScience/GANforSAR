@@ -18,15 +18,15 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES:
-EPOCHS = 7
+EPOCHS = 200
 BATCH_SIZE = 50
 IMAGES_PER_SPLIT = 2
 SAMPLE_INTERVAL = 100
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 100, 500, 1900]
-GENERATED_DATA_LOCATION = 'generated_images/tests/'
+GENERATED_DATA_LOCATION = 'generated_images/running/'
 DATASET_PATH = ''
-MODEL_WEIGHTS_PATH = 'models/tests/64x64/'
+MODEL_WEIGHTS_PATH = 'models/running/'
 
 # - - - - - - - - - -
 
