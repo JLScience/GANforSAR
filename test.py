@@ -80,3 +80,32 @@
 # print(sys.argv)
 # print(lr_d)
 # print(lr_g)
+
+# import numpy as np
+# import keras
+# from keras.models import Sequential
+# from keras.layers import Dense, Flatten
+#
+# epochs = 10
+# batchsize = 50
+#
+# model = Sequential()
+# model.add(Dense(100, activation='relu', input_shape=(10,)))
+# model.add(Dense(2, activation='softmax'))
+# model.summary()
+#
+# opt = keras.optimizers.Adam(lr=0.0001, decay=0.1)
+# model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+#
+# x = np.random.rand(1000, 10)
+# y = keras.utils.to_categorical(np.random.randint(0, 1, 1000), 2)
+#
+# for e in range(epochs):
+#     for b in range(0, 1000, batchsize):
+#         x_b = x[b*batchsize:(b+1)*batchsize, ...]
+#         y_b = y[b*batchsize:(b+1)*batchsize, ...]
+#         loss = model.train_on_batch(x_b, y_b)
+#         opt.__setattr__('lr', 0.7)
+#         print('Epoch: {}, Batch: {}, loss: {}, lr: {}'.format(e, int(b/batchsize), loss[0], opt.get_config()['lr']))
+#
+
