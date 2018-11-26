@@ -9,7 +9,7 @@ from keras.optimizers import Adam
 import data_io
 
 MODEL_WEIGHTS_PATH = 'models/'
-EPOCHS = 2
+EPOCHS = 20
 BATCH_SIZE = 50
 
 
@@ -25,7 +25,7 @@ class Custom_VGG16():
 
     def inspect_sar_data(self, class_idx):
         data_opt = data_io.load_dataset_eurosat('data/EuroSAT/dataset.hdf5', mode=self.class_names[class_idx])
-        data_sar = data_io.load_dataset_eurosat('data/EuroSAT/dataset_translated.hdf5', mode=self.class_names[class_idx])
+        data_sar = data_io.load_dataset_eurosat('data/EuroSAT/dataset_translated_real_1.hdf5', mode=self.class_names[class_idx])
         num_image_pairs = 5
         for idx in range(10):
             fig, axs = plt.subplots(num_image_pairs, 2, figsize=(6, 2*num_image_pairs-2))
@@ -84,7 +84,7 @@ class Custom_VGG16():
         self.classifier.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
         # load dataset
-        path = 'data/EuroSAT/dataset_translated.hdf5'
+        path = 'data/EuroSAT/dataset_translated_real_1.hdf5'
         x_train, y_train, x_val, y_val, x_test, y_test = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
 
         # preprocess data
@@ -138,4 +138,5 @@ class Custom_VGG16():
 
 if __name__ == '__main__':
     my_vgg = Custom_VGG16()
-    my_vgg.inspect_sar_data(9)
+    my_vgg.train_sar()
+    # my_vgg.inspect_sar_data(0)
