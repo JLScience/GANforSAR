@@ -9,7 +9,7 @@ from keras.optimizers import Adam
 import data_io
 
 MODEL_WEIGHTS_PATH = 'models/'
-EPOCHS = 20
+EPOCHS = 50
 BATCH_SIZE = 50
 
 
@@ -23,17 +23,20 @@ class Custom_VGG16():
         self.classifier = self.build_model()
         self.classifier.summary()
 
-    def inspect_sar_data(self, class_idx):
+    def inspect_sar_data(self, class_idx, dataset_names):
         data_opt = data_io.load_dataset_eurosat('data/EuroSAT/dataset.hdf5', mode=self.class_names[class_idx])
-        data_sar = data_io.load_dataset_eurosat('data/EuroSAT/dataset_translated_real_1.hdf5', mode=self.class_names[class_idx])
+        data_sar = []
+        for name in dataset_names:
+            data_sar.append(data_io.load_dataset_eurosat('data/EuroSAT/dataset_translated_' + name + '.hdf5', mode=self.class_names[class_idx]))
         num_image_pairs = 5
         for idx in range(10):
-            fig, axs = plt.subplots(num_image_pairs, 2, figsize=(6, 2*num_image_pairs-2))
+            fig, axs = plt.subplots(num_image_pairs, 1+len(data_sar), figsize=(3+2*len(data_sar), 2*num_image_pairs-2))
             for i in range(num_image_pairs):
                 axs[i, 0].imshow(data_opt[idx*num_image_pairs+i, ...])
-                axs[i, 1].imshow(data_sar[idx*num_image_pairs+i, :, :, 0], cmap='gray')
                 axs[i, 0].axis('off')
-                axs[i, 1].axis('off')
+                for j in range(len(data_sar)):
+                    axs[i, j+1].imshow(data_sar[j][idx*num_image_pairs+i, :, :, 0], cmap='gray')
+                    axs[i, j+1].axis('off')
             plt.show()
 
     def build_model(self):
@@ -84,7 +87,7 @@ class Custom_VGG16():
         self.classifier.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
         # load dataset
-        path = 'data/EuroSAT/dataset_translated_real_1.hdf5'
+        path = 'data/EuroSAT/dataset_translated_real_4.hdf5'
         x_train, y_train, x_val, y_val, x_test, y_test = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
 
         # preprocess data
@@ -139,4 +142,4 @@ class Custom_VGG16():
 if __name__ == '__main__':
     my_vgg = Custom_VGG16()
     my_vgg.train_sar()
-    # my_vgg.inspect_sar_data(0)
+    # my_vgg.inspect_sar_data(3, ['real_3', 'real_3_old'])
