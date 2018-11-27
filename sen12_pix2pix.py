@@ -70,7 +70,7 @@ class GAN_P2P():
         self.opt_g = Adam(lr=lr_g, beta_1=0.5)
         self.opt_d = Adam(lr=lr_d, beta_1=0.5)
 
-        self.generator = self.make_generator_64()
+        self.generator = self.make_generator_64(use_batch_normalization=False)                          #
         print('--> Generator Model:')
         self.generator.summary()
 
@@ -139,11 +139,11 @@ class GAN_P2P():
 
         return Model(d0, output_image)
 
-    def make_generator_64(self):
+    def make_generator_64(self, use_batch_normalization=True):
         def conv2d(layer_input, filters, f_size=4, bn=True):
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
             d = LeakyReLU(alpha=0.2)(d)
-            if bn:
+            if bn and use_batch_normalization:
                 d = BatchNormalization(momentum=0.8)(d)
             return d
 
@@ -480,7 +480,7 @@ def translate_eurosat(model_name):
     # gan.train_sen12()
     gan.load_generator(model_name)
     data = data_io.load_dataset_eurosat()
-    f = h5py.File('data/EuroSAT/dataset_translated_real_1.hdf5')
+    f = h5py.File('data/EuroSAT/dataset_translated_' + model_name + '.hdf5')
     names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
              'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
     for i, d in enumerate(data):
@@ -488,6 +488,7 @@ def translate_eurosat(model_name):
         d_t = gan.apply_generator(d)
         d_t = (d_t + 1) * 127.5
         d_t = np.array(np.round(d_t), dtype=np.uint8)
+        print(d_t.shape)
         f.create_dataset(name=names[i], data=d_t)
 
 
@@ -510,4 +511,4 @@ def test_generator(num_images):
 if __name__ == '__main__':
     gan = GAN_P2P()
     gan.train_sen12()
-    # translate_eurosat('real_1')
+    # translate_eurosat('real_3')
