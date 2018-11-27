@@ -8,7 +8,7 @@ from keras.optimizers import Adam
 
 import data_io
 
-MODEL_WEIGHTS_PATH = 'models/'
+MODEL_WEIGHTS_PATH = 'models/classifier/'
 EPOCHS = 50
 BATCH_SIZE = 50
 
@@ -72,6 +72,9 @@ class Custom_VGG16():
         loss, acc = self.classifier.evaluate(x_test, keras.utils.to_categorical(y_test, self.num_classes))
         print(loss, acc)
 
+        # save classifier:
+        self.save_trained_model('vgg_opt')
+
         conf = np.zeros((self.num_classes, self.num_classes))
         for i in range(self.num_classes):
             x = x_test[y_test == i]
@@ -79,8 +82,13 @@ class Custom_VGG16():
             for j in range(self.num_classes):
                 conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
         print(np.round(conf, 2))
-
-        # TODO: save weights (in between)
+        plt.imshow(conf)
+        plt.colorbar()
+        plt.xlabel('correct class')
+        plt.ylabel('predicted class')
+        plt.xticks(np.arange(10), self.class_names, rotation=90)
+        plt.yticks(np.arange(10), self.class_names)
+        plt.show()
 
     def train_sar(self):
         opt = Adam()
@@ -117,7 +125,6 @@ class Custom_VGG16():
             for j in range(self.num_classes):
                 conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
         print(np.round(conf, 2))
-        import matplotlib.pyplot as plt
         plt.imshow(conf)
         plt.colorbar()
         plt.xlabel('correct class')
@@ -129,11 +136,11 @@ class Custom_VGG16():
 
         # TODO: save weights (in between)
 
-    def save_trained_model(self):
-        self.classifier.save_weights(MODEL_WEIGHTS_PATH + 'classifier.hdf5')
+    def save_trained_model(self, name):
+        self.classifier.save_weights(MODEL_WEIGHTS_PATH + name + '.hdf5')
 
-    def load_trained_model(self):
-        self.classifier.load_weights(MODEL_WEIGHTS_PATH + 'classifier_trained.hdf5')
+    def load_trained_model(self, name):
+        self.classifier.load_weights(MODEL_WEIGHTS_PATH + name + '.hdf5')
 
     def apply(self, batch):
         return self.classifier.predict(batch)
@@ -141,5 +148,5 @@ class Custom_VGG16():
 
 if __name__ == '__main__':
     my_vgg = Custom_VGG16()
-    my_vgg.train_sar()
+    my_vgg.train_optical()
     # my_vgg.inspect_sar_data(3, ['real_3', 'real_3_old'])
