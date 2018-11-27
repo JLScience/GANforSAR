@@ -32,14 +32,44 @@ def apply_opt_classifier(classifier, inp):
     return classifier.predict(inp)
 
 
-def classify_dataset(model, dataset_path):
-    pass
+def classify_dataset(classifier, dataset_path):
+    f_opt = h5py.File(dataset_path + 'optical_dataset.hdf5')
+    f_sar = h5py.File(dataset_path + 'sar_dataset.hdf5')
+    idx_list = np.array(f_sar['index_list'], dtype=np.uint8)
+    # for idx in idx_list:
+    for idx in [4]:
+        # load data:
+        sar = f_sar['s1_' + str(idx)]
+        opt = f_opt['s2_' + str(idx)]
+        print(opt.shape)
+
+        # cut images:
+        sar = augmentation.split_images(sar, factor=4)
+        opt = augmentation.split_images(opt, factor=4)
+        print(opt.shape)
+
+        # create a normalized copy of the optical data to put into the network
+        opt_norm = np.array(opt / 127.5 - 1, dtype=np.float32)
+
+        # apply classifier:
+        y = apply_opt_classifier(classifier, opt_norm)
+        print(y.shape)
+
+        idz = [5, 500, 2000, 5000, 8000]
+        fig, axs = plt.subplots(1, 5)
+        for i, id in enumerate(idz):
+            axs[i].imshow(opt[id])
+            label = np.argmax(y[id, :])
+            axs[i].set_title('l: {}, c.: {}'.format(label, str(np.round(y[id, label], 2))))
+            axs[i].axis('off')
+        plt.show()
+
 
 
 def main():
-    model = load_opt_classifier('vgg_opt')
+    classifier = load_opt_classifier('vgg_opt')
     dataset_path = '/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/'
-    classify_dataset(model, dataset_path)
+    classify_dataset(classifier, dataset_path)
 
 
 if __name__ == '__main__':
