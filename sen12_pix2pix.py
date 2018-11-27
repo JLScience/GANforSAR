@@ -152,7 +152,8 @@ class GAN_P2P():
             u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
             if dropout_rate:
                 u = Dropout(dropout_rate)(u)
-            u = BatchNormalization(momentum=0.8)(u)
+            if use_batch_normalization:
+                u = BatchNormalization(momentum=0.8)(u)
             u = Concatenate()([u, skip_input])
             return u
 
