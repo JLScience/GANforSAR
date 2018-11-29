@@ -33,11 +33,13 @@ def apply_opt_classifier(classifier, inp):
 
 
 def classify_dataset(classifier, dataset_path):
+    class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
+                   'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
     f_opt = h5py.File(dataset_path + 'optical_dataset.hdf5')
     f_sar = h5py.File(dataset_path + 'sar_dataset.hdf5')
     idx_list = np.array(f_sar['index_list'], dtype=np.uint8)
     # for idx in idx_list:
-    for idx in [4]:
+    for idx in [41]:
         # load data:
         sar = f_sar['s1_' + str(idx)]
         opt = f_opt['s2_' + str(idx)]
@@ -55,12 +57,12 @@ def classify_dataset(classifier, dataset_path):
         y = apply_opt_classifier(classifier, opt_norm)
         print(y.shape)
 
-        idz = [5, 500, 2000, 5000, 8000]
-        fig, axs = plt.subplots(1, 5)
+        idz = [100, 350, 3500, 7200, 10500, 11500, 12000]
+        fig, axs = plt.subplots(1, len(idz))
         for i, id in enumerate(idz):
             axs[i].imshow(opt[id])
             label = np.argmax(y[id, :])
-            axs[i].set_title('l: {}, c.: {}'.format(label, str(np.round(y[id, label], 2))))
+            axs[i].set_title('l: {}, c.: {}%'.format(class_names[label], int(100*y[id, label])))
             axs[i].axis('off')
         plt.show()
 

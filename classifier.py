@@ -9,7 +9,7 @@ from keras.optimizers import Adam
 import data_io
 
 MODEL_WEIGHTS_PATH = 'models/classifier/'
-EPOCHS = 50
+EPOCHS = 20
 BATCH_SIZE = 50
 
 
@@ -45,9 +45,9 @@ class Custom_VGG16():
         inp = Input(shape=(64, 64, 3))
         outp = vgg16_model(inp)
         outp = Flatten()(outp)
-        outp = Dropout(0.4)(outp)
+        outp = Dropout(0.3)(outp)
         outp = Dense(512, activation='relu')(outp)
-        outp = Dropout(0.4)(outp)
+        outp = Dropout(0.3)(outp)
         outp = Dense(512, activation='relu')(outp)
         outp = Dense(10, activation='softmax')(outp)
         return Model(inp, outp)
@@ -90,12 +90,15 @@ class Custom_VGG16():
         plt.yticks(np.arange(10), self.class_names)
         plt.show()
 
+
+
+
     def train_sar(self):
         opt = Adam()
         self.classifier.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
         # load dataset
-        path = 'data/EuroSAT/dataset_translated_real_4.hdf5'
+        path = 'data/EuroSAT/dataset_translated_real_5.hdf5'
         x_train, y_train, x_val, y_val, x_test, y_test = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
 
         # preprocess data
@@ -148,5 +151,18 @@ class Custom_VGG16():
 
 if __name__ == '__main__':
     my_vgg = Custom_VGG16()
-    my_vgg.train_optical()
-    # my_vgg.inspect_sar_data(3, ['real_3', 'real_3_old'])
+    my_vgg.load_trained_model('vgg_opt')
+    _, _, _, _, x_test, _ = data_io.divide_dataset_eurosat(0.1, 0.1)
+    x_test_n = np.array(x_test / 127.5 - 1, dtype=np.float32)
+    y_pred = my_vgg.classifier.predict(x_test_n)
+    idz = [20, 70, 300, 550, 700, 900, 1300]
+    fig, axs = plt.subplots(1, len(idz))
+    for i, id in enumerate(idz):
+        axs[i].imshow(x_test[id])
+        label = np.argmax(y_pred[id, :])
+        axs[i].set_title('l: {}, c.: {}%'.format(my_vgg.class_names[label], int(100 * y_pred[id, label])))
+        axs[i].axis('off')
+    plt.show()
+    # my_vgg.train_sar()
+    # my_vgg.train_optical()
+    # my_vgg.inspect_sar_data(8, ['real_3', 'real_5'])

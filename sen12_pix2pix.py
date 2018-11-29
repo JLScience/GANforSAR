@@ -512,4 +512,4 @@ def test_generator(num_images):
 if __name__ == '__main__':
     gan = GAN_P2P()
     gan.train_sen12()
-    # translate_eurosat('real_3')
+    # translate_eurosat('real_5')

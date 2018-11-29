@@ -117,5 +117,5 @@
 #         print('Epoch: {}, Batch: {}, loss: {}, lr: {}'.format(e, int(b/batchsize), loss[0], opt.get_config()['lr']))
 #         # print('Epoch: {}, Batch: {}, loss: {}, lr: {}'.format(e, int(b/batchsize), loss[0], model.optimizer.lr.eval()))
 
-
+print(int(1.2))
 
