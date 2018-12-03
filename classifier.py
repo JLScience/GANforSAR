@@ -7,20 +7,26 @@ from keras.layers import Input, Flatten, Dense, Dropout
 from keras.optimizers import Adam
 
 import data_io
+import my_resnet50
 
 MODEL_WEIGHTS_PATH = 'models/classifier/'
 EPOCHS = 20
 BATCH_SIZE = 50
 
 
-class Custom_VGG16():
+class Custom_Classifer():
 
-    def __init__(self):
+    def __init__(self, network_type='vgg16'):
         self.num_classes = 10
         self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
                             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
+        self.class_names_ger = ['EinjKultur', 'Wald', 'KrautKultur', 'Straße', 'Industrie',
+                                'Wiese', 'DauerKultur', 'Wohngebiet', 'Fluss', 'Gewässer']
         self.input_shape = (64, 64, 3)
-        self.classifier = self.build_model()
+        if network_type == 'vgg16':
+            self.classifier = self.build_model_vgg16()
+        elif network_type == 'resnet50':
+            self.classifier = self.build_model_resnet50()
         self.classifier.summary()
 
     def inspect_sar_data(self, class_idx, dataset_names):
@@ -39,7 +45,7 @@ class Custom_VGG16():
                     axs[i, j+1].axis('off')
             plt.show()
 
-    def build_model(self):
+    def build_model_vgg16(self):
         vgg16_model = keras.applications.vgg16.VGG16(include_top=False, input_shape=(64, 64, 3))
         vgg16_model.trainable = False
         inp = Input(shape=(64, 64, 3))
@@ -49,6 +55,19 @@ class Custom_VGG16():
         outp = Dense(512, activation='relu')(outp)
         outp = Dropout(0.3)(outp)
         outp = Dense(512, activation='relu')(outp)
+        outp = Dense(10, activation='softmax')(outp)
+        return Model(inp, outp)
+
+    def build_model_resnet50(self):
+        resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
+        resnet50_model.trainable = False
+        inp = Input(shape=(64, 64, 3))
+        outp = resnet50_model(inp)
+        outp = Flatten()(outp)
+        outp = Dropout(0.3)(outp)
+        outp = Dense(512, activation='relu')(outp)
+        # outp = Dropout(0.3)(outp)
+        # outp = Dense(512, activation='relu')(outp)
         outp = Dense(10, activation='softmax')(outp)
         return Model(inp, outp)
 
@@ -89,9 +108,6 @@ class Custom_VGG16():
         plt.xticks(np.arange(10), self.class_names, rotation=90)
         plt.yticks(np.arange(10), self.class_names)
         plt.show()
-
-
-
 
     def train_sar(self):
         opt = Adam()
@@ -150,19 +166,19 @@ class Custom_VGG16():
 
 
 if __name__ == '__main__':
-    my_vgg = Custom_VGG16()
-    my_vgg.load_trained_model('vgg_opt')
-    _, _, _, _, x_test, _ = data_io.divide_dataset_eurosat(0.1, 0.1)
-    x_test_n = np.array(x_test / 127.5 - 1, dtype=np.float32)
-    y_pred = my_vgg.classifier.predict(x_test_n)
-    idz = [20, 70, 300, 550, 700, 900, 1300]
-    fig, axs = plt.subplots(1, len(idz))
-    for i, id in enumerate(idz):
-        axs[i].imshow(x_test[id])
-        label = np.argmax(y_pred[id, :])
-        axs[i].set_title('l: {}, c.: {}%'.format(my_vgg.class_names[label], int(100 * y_pred[id, label])))
-        axs[i].axis('off')
-    plt.show()
+    my_vgg = Custom_Classifer('resnet50')
+    # my_vgg.load_trained_model('vgg_opt')
+    # _, _, _, _, x_test, _ = data_io.divide_dataset_eurosat(0.1, 0.1)
+    # x_test_n = np.array(x_test / 127.5 - 1, dtype=np.float32)
+    # y_pred = my_vgg.classifier.predict(x_test_n)
+    # idz = [20, 70, 300, 550, 700, 900, 1300]
+    # fig, axs = plt.subplots(1, len(idz))
+    # for i, id in enumerate(idz):
+    #     axs[i].imshow(x_test[id])
+    #     label = np.argmax(y_pred[id, :])
+    #     axs[i].set_title('l: {}, c.: {}%'.format(my_vgg.class_names[label], int(100 * y_pred[id, label])))
+    #     axs[i].axis('off')
+    # plt.show()
     # my_vgg.train_sar()
     # my_vgg.train_optical()
     # my_vgg.inspect_sar_data(8, ['real_3', 'real_5'])

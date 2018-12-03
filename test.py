@@ -117,5 +117,51 @@
 #         print('Epoch: {}, Batch: {}, loss: {}, lr: {}'.format(e, int(b/batchsize), loss[0], opt.get_config()['lr']))
 #         # print('Epoch: {}, Batch: {}, loss: {}, lr: {}'.format(e, int(b/batchsize), loss[0], model.optimizer.lr.eval()))
 
-print(int(1.2))
+# print(int(1.2))
 
+# # TEST IF CLASSIFIER WORKS AT ALL: CHECK
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import data_io
+# from classifier import Custom_Classifer
+# data_list = data_io.load_dataset_eurosat()
+# my_vgg = Custom_Classifer('vgg16')
+# my_vgg.load_trained_model('vgg_opt')
+# for i, d in enumerate(data_list):
+#     d_norm = np.array(d / 127.5 - 1, dtype=np.float32)
+#     pred = my_vgg.apply(d_norm)
+#     fig, axs = plt.subplots(1, 7)
+#     indizes = np.arange(d.shape[0]-7, d.shape[0], 1)
+#     print(indizes.shape)
+#     for j in range(7):
+#         axs[j].imshow(d[indizes[j]])
+#         label = np.argmax(pred[indizes[j], :])
+#         print('Label: {}, {}'.format(label, i))
+#         axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
+#         axs[j].axis('off')
+#     plt.show()
+
+# # TEST IF CLASSIFIER WORKS WITH SEN12: WRONG
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import data_io
+# import augmentation
+# from classifier import Custom_Classifer
+# data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [0], split_ratio=1.0)
+# data = augmentation.split_images(data, 4)
+# data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
+# print(data.shape)
+# my_vgg = Custom_Classifer('vgg16')
+# my_vgg.load_trained_model('vgg_opt')
+# indizes = [10, 50, 200, 500, 800, 1000, 1500]
+# pred = my_vgg.apply(data_norm)
+# fig, axs = plt.subplots(1, 7)
+# for j in range(7):
+#     axs[j].imshow(data[indizes[j]])
+#     label = np.argmax(pred[indizes[j], :])
+#     axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
+#     axs[j].axis('off')
+# plt.show()
+
+from classifier import Custom_Classifer
+my_net = Custom_Classifer('resnet50')
