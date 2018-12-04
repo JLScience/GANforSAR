@@ -7,6 +7,7 @@ from keras.layers import Input, Flatten, Dense, Dropout
 from keras.optimizers import Adam
 
 import data_io
+import augmentation
 import my_resnet50
 
 MODEL_WEIGHTS_PATH = 'models/classifier/'
@@ -17,6 +18,7 @@ BATCH_SIZE = 50
 class Custom_Classifer():
 
     def __init__(self, network_type='vgg16'):
+        self.network_type = network_type
         self.num_classes = 10
         self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
                             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
@@ -59,12 +61,13 @@ class Custom_Classifer():
         return Model(inp, outp)
 
     def build_model_resnet50(self):
-        resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
-        resnet50_model.trainable = False
+        # resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
+        # resnet50_model.trainable = False
+        resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
         inp = Input(shape=(64, 64, 3))
         outp = resnet50_model(inp)
         outp = Flatten()(outp)
-        outp = Dropout(0.3)(outp)
+        outp = Dropout(0.4)(outp)
         outp = Dense(512, activation='relu')(outp)
         # outp = Dropout(0.3)(outp)
         # outp = Dense(512, activation='relu')(outp)
@@ -77,6 +80,12 @@ class Custom_Classifer():
 
         # load dataset
         x_train, y_train, x_val, y_val, x_test, y_test = data_io.divide_dataset_eurosat(0.1, 0.1)
+
+        # augment data:
+        p = np.random.permutation(x_train.shape[0])
+        x_train = x_train[p]
+        y_train = y_train[p]
+        x_train = augmentation.apply_all(x_train)
 
         # preprocess data
         x_train = np.array(x_train / 127.5 - 1, dtype=np.float32)
@@ -92,7 +101,7 @@ class Custom_Classifer():
         print(loss, acc)
 
         # save classifier:
-        self.save_trained_model('vgg_opt')
+        self.save_trained_model(self.network_type + '_opt')
 
         conf = np.zeros((self.num_classes, self.num_classes))
         for i in range(self.num_classes):
@@ -168,17 +177,6 @@ class Custom_Classifer():
 if __name__ == '__main__':
     my_vgg = Custom_Classifer('resnet50')
     # my_vgg.load_trained_model('vgg_opt')
-    # _, _, _, _, x_test, _ = data_io.divide_dataset_eurosat(0.1, 0.1)
-    # x_test_n = np.array(x_test / 127.5 - 1, dtype=np.float32)
-    # y_pred = my_vgg.classifier.predict(x_test_n)
-    # idz = [20, 70, 300, 550, 700, 900, 1300]
-    # fig, axs = plt.subplots(1, len(idz))
-    # for i, id in enumerate(idz):
-    #     axs[i].imshow(x_test[id])
-    #     label = np.argmax(y_pred[id, :])
-    #     axs[i].set_title('l: {}, c.: {}%'.format(my_vgg.class_names[label], int(100 * y_pred[id, label])))
-    #     axs[i].axis('off')
-    # plt.show()
     # my_vgg.train_sar()
-    # my_vgg.train_optical()
+    my_vgg.train_optical()
     # my_vgg.inspect_sar_data(8, ['real_3', 'real_5'])

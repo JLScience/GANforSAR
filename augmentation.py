@@ -46,7 +46,7 @@ def rotate_270_clockwise(tensor):
     return reflect_horizontal(transpose(tensor))
 
 
-def apply_all(tensor1, tensor2):
+def apply_all(tensor1, tensor2=0):
     funcs = [transpose, reflect_horizontal, reflect_vertical, rotate_90_clockwise, rotate_180, rotate_270_clockwise]
     descriptions = ['Apply transposition \t\t\t\t (1/6) ...',
                     'Apply horizontal reflection \t\t (2/6) ...',
@@ -55,14 +55,18 @@ def apply_all(tensor1, tensor2):
                     'Apply rotation (180 deg clockwise) \t (5/6) ...',
                     'Apply rotation (270 deg clockwise) \t (6/6) ...', ]
     out1 = np.zeros(tensor1.shape, dtype=tensor1.dtype)
-    out2 = np.zeros(tensor2.shape, dtype=tensor2.dtype)
+    if tensor2 != 0:
+        out2 = np.zeros(tensor2.shape, dtype=tensor2.dtype)
     step = np.array(np.linspace(0, tensor1.shape[0], len(funcs)+1), dtype=np.uint32)
     for i, f in enumerate(funcs):
         print(descriptions[i])
         out1[step[i]:step[i+1], ...] = f(tensor1[step[i]:step[i+1], ...])
-        out2[step[i]:step[i+1], ...] = f(tensor2[step[i]:step[i+1], ...])
+        if tensor2 != 0:
+            out2[step[i]:step[i+1], ...] = f(tensor2[step[i]:step[i+1], ...])
     print('Done!')
-    return out1, out2
+    if tensor2 != 0:
+        return out1, out2
+    return out1
 
 
 def lee_filter(img, filter_size):
