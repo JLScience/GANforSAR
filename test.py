@@ -142,27 +142,31 @@
 #         axs[j].axis('off')
 #     plt.show()
 
-# TEST IF CLASSIFIER WORKS WITH SEN12: WRONG
-import numpy as np
-import matplotlib.pyplot as plt
-import data_io
-import augmentation
-from classifier import Custom_Classifer
-data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [4], split_ratio=1.0)
-data = augmentation.split_images(data, 4)
-data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
-print(data.shape)
-my_vgg = Custom_Classifer('resnet50')
-my_vgg.load_trained_model('resnet50_opt_5')
-indizes = [20, 60, 300, 450, 750, 980, 2000]
-pred = my_vgg.apply(data_norm)
-fig, axs = plt.subplots(1, 7)
-for j in range(7):
-    axs[j].imshow(data[indizes[j]])
-    label = np.argmax(pred[indizes[j], :])
-    axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
-    axs[j].axis('off')
-plt.show()
+# # TEST IF CLASSIFIER WORKS WITH SEN12: WRONG
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import data_io
+# import augmentation
+# from classifier import Custom_Classifer
+# data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [4], split_ratio=1.0)
+# data = augmentation.split_images(data, 4)
+# data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
+# print(data.shape)
+# my_vgg = Custom_Classifer('resnet50')
+# my_vgg.load_trained_model('resnet50_opt_5')
+# indizes = [20, 60, 300, 450, 750, 980, 2000]
+# pred = my_vgg.apply(data_norm)
+# fig, axs = plt.subplots(1, 7)
+# for j in range(7):
+#     axs[j].imshow(data[indizes[j]])
+#     label = np.argmax(pred[indizes[j], :])
+#     axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
+#     axs[j].axis('off')
+# plt.show()
 
 # from classifier import Custom_Classifer
 # my_net = Custom_Classifer('resnet50')
+
+# import numpy as np
+# x = np.zeros((5, 6, 6, 3))
+# x[:, :, :, :] = np.ones((5, 6, 6))

@@ -3,6 +3,8 @@ import numpy as np
 from scipy.ndimage.filters import uniform_filter
 from scipy.ndimage.measurements import variance
 
+# if not stated otherwise, the input of each function is expected to have shape (num_samples, width, height, channels)
+
 
 def transpose(tensor):
     rotated = np.zeros(tensor.shape, dtype=tensor.dtype)
@@ -67,6 +69,21 @@ def apply_all(tensor1, tensor2=0):
     if tensor2 != 0:
         return out1, out2
     return out1
+
+
+def to_gray(tensor, mode=3):
+    if mode == 3:
+        gray = np.zeros(shape=tensor.shape, dtype=tensor.dtype)
+        mean = np.mean(tensor, axis=-1)
+        for i in range(3):
+            gray[:, :, :, i] = mean
+        return gray
+    elif mode == 1:
+        gray = np.zeros(shape=(tensor.shape[0], tensor.shape[1], tensor.shape[2], 1), dtype=tensor.dtype)
+        gray[:, :, :, 0] = np.mean(tensor, axis=-1)
+        return gray
+    else:
+        raise ValueError('mode has to be either 1 or 3, you passed ' + str(mode))
 
 
 def lee_filter(img, filter_size):
@@ -300,3 +317,16 @@ def test_split_images():
     plt.show()
 
 # - - - - - - - - - - - - - - -
+
+
+if __name__ == '__main__':
+    pass
+    # tensor = np.array(np.random.randint(0, 10, (5, 3, 3, 3)), dtype=np.float32)
+    # print(tensor[0, :, :, 0])
+    # print(tensor[0, :, :, 1])
+    # print(tensor[0, :, :, 2])
+    # t = to_gray(tensor, mode=3)
+    # print(t[0, :, :, 0])
+    # print(t[0, :, :, 1])
+    # print(t[0, :, :, 2])
+    # print(t.shape)
