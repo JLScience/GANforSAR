@@ -61,9 +61,9 @@ class Custom_Classifer():
         return Model(inp, outp)
 
     def build_model_resnet50(self):
-        # resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
-        # resnet50_model.trainable = False
-        resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
+        resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
+        resnet50_model.trainable = False
+        # resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
         inp = Input(shape=(64, 64, 3))
         outp = resnet50_model(inp)
         outp = Flatten()(outp)
@@ -87,13 +87,18 @@ class Custom_Classifer():
         y_train = y_train[p]
         x_train = augmentation.apply_all(x_train)
 
-        # preprocess data
+        # pre-process data
         x_train = np.array(x_train / 127.5 - 1, dtype=np.float32)
         x_val = np.array(x_val / 127.5 - 1, dtype=np.float32)
         x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
         y_train = keras.utils.to_categorical(y_train, self.num_classes)
         y_val = keras.utils.to_categorical(y_val, self.num_classes)
         # y_test = keras.utils.to_categorical(y_test, self.num_classes)
+
+        # convert to gray-scale:
+        x_train = augmentation.to_gray(x_train, mode=3)
+        x_val = augmentation.to_gray(x_val, mode=3)
+        x_test = augmentation.to_gray(x_test, mode=3)
 
         # train classifier
         self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(x_val, y_val), verbose=2)
