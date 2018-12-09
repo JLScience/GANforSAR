@@ -17,7 +17,7 @@ BATCH_SIZE = 50
 
 class Custom_Classifer():
 
-    def __init__(self, network_type='vgg16'):
+    def __init__(self, network_type='vgg19'):
         self.network_type = network_type
         self.num_classes = 10
         self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
@@ -25,10 +25,12 @@ class Custom_Classifer():
         self.class_names_ger = ['EinjKultur', 'Wald', 'KrautKultur', 'Straße', 'Industrie',
                                 'Wiese', 'DauerKultur', 'Wohngebiet', 'Fluss', 'Gewässer']
         self.input_shape = (64, 64, 3)
-        if network_type == 'vgg16':
+        if network_type == 'vgg19':
             self.classifier = self.build_model_vgg16()
         elif network_type == 'resnet50':
             self.classifier = self.build_model_resnet50()
+        else:
+            raise ValueError('Unknown network type, you passed' + self.network_type)
         self.classifier.summary()
 
     def inspect_sar_data(self, class_idx, dataset_names):
@@ -48,7 +50,7 @@ class Custom_Classifer():
             plt.show()
 
     def build_model_vgg16(self):
-        vgg16_model = keras.applications.vgg16.VGG16(include_top=False, input_shape=(64, 64, 3))
+        vgg16_model = keras.applications.vgg19.VGG19(include_top=False, input_shape=(64, 64, 3))
         vgg16_model.trainable = False
         inp = Input(shape=(64, 64, 3))
         outp = vgg16_model(inp)
@@ -87,18 +89,27 @@ class Custom_Classifer():
         y_train = y_train[p]
         x_train = augmentation.apply_all(x_train)
 
-        # pre-process data
-        x_train = np.array(x_train / 127.5 - 1, dtype=np.float32)
-        x_val = np.array(x_val / 127.5 - 1, dtype=np.float32)
-        x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
+        # pre-process data:
+
+        # convert RGB --> BGR:
+        x_train = x_train[..., ::-1]
+        x_val = x_val[..., ::-1]
+        x_test = x_test[..., ::-1]
+        # subtract VGG19 mean:
+        vgg19_means = [103.939, 116.779, 123.68]
+        for i in range(x_train.shape[-1]):
+            x_train[:, :, :, i] = np.array(x_train[:, :, :, i] - vgg19_means[i], dtype=np.float32)
+            x_val[:, :, :, i] = np.array(x_val[:, :, :, i] - vgg19_means[i], dtype=np.float32)
+            x_test[:, :, :, i] = np.array(x_test[:, :, :, i] - vgg19_means[i], dtype=np.float32)
+
         y_train = keras.utils.to_categorical(y_train, self.num_classes)
         y_val = keras.utils.to_categorical(y_val, self.num_classes)
         # y_test = keras.utils.to_categorical(y_test, self.num_classes)
 
-        # convert to gray-scale:
-        x_train = augmentation.to_gray(x_train, mode=3)
-        x_val = augmentation.to_gray(x_val, mode=3)
-        x_test = augmentation.to_gray(x_test, mode=3)
+        # # convert to gray-scale:
+        # x_train = augmentation.to_gray(x_train, mode=3)
+        # x_val = augmentation.to_gray(x_val, mode=3)
+        # x_test = augmentation.to_gray(x_test, mode=3)
 
         # train classifier
         self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(x_val, y_val), verbose=2)

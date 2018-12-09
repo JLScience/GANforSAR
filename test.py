@@ -128,14 +128,17 @@
 # from classifier import Custom_Classifer
 # data_list = data_io.load_dataset_eurosat()
 # my_vgg = Custom_Classifer('resnet50')
-# my_vgg.load_trained_model('resnet50_opt_gray')
+# my_vgg.load_trained_model('resnet50_opt_7_correct_norm')
 # for i, d in enumerate(data_list):
-#     d_norm = np.array(d / 127.5 - 1, dtype=np.float32)
-#     d_norm = augmentation.to_gray(d_norm, mode=3)
+#     # d_norm = np.array(d / 127.5 - 1, dtype=np.float32)
+#     # d_norm = augmentation.to_gray(d_norm, mode=3)
+#     d_norm = np.array(d[..., ::-1])
+#     vgg19_means = [103.939, 116.779, 123.68]
+#     for k in range(3):
+#         d_norm[:, :, :, k] = np.array(d_norm[:, :, :, k] - vgg19_means[k], dtype=np.float32)
 #     pred = my_vgg.apply(d_norm)
 #     fig, axs = plt.subplots(1, 7)
 #     indizes = np.arange(d.shape[0]-7, d.shape[0], 1)
-#     print(indizes.shape)
 #     for j in range(7):
 #         axs[j].imshow(d[indizes[j]])
 #         label = np.argmax(pred[indizes[j], :])
@@ -144,28 +147,32 @@
 #         axs[j].axis('off')
 #     plt.show()
 
-# # TEST IF CLASSIFIER WORKS WITH SEN12:
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import data_io
-# import augmentation
-# from classifier import Custom_Classifer
-# data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [10], split_ratio=1.0)
-# data = augmentation.split_images(data, 4)
+# TEST IF CLASSIFIER WORKS WITH SEN12:
+import numpy as np
+import matplotlib.pyplot as plt
+import data_io
+import augmentation
+from classifier import Custom_Classifer
+data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [4], split_ratio=1.0)
+data = augmentation.split_images(data, 4)
 # data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
 # data_norm = augmentation.to_gray(data_norm, mode=3)
-# print(data.shape)
-# my_vgg = Custom_Classifer('resnet50')
-# my_vgg.load_trained_model('resnet50_opt_gray')
-# indizes = [20, 60, 300, 450, 750, 980, 2000]
-# pred = my_vgg.apply(data_norm)
-# fig, axs = plt.subplots(1, 7)
-# for j in range(7):
-#     axs[j].imshow(data[indizes[j]])
-#     label = np.argmax(pred[indizes[j], :])
-#     axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
-#     axs[j].axis('off')
-# plt.show()
+d_norm = np.array(data[..., ::-1])
+vgg19_means = [103.939, 116.779, 123.68]
+for k in range(3):
+    d_norm[:, :, :, k] = np.array(d_norm[:, :, :, k] - vgg19_means[k], dtype=np.float32)
+print(data.shape)
+my_vgg = Custom_Classifer('resnet50')
+my_vgg.load_trained_model('resnet50_opt_7_correct_norm')
+indizes = [20, 60, 300, 450, 750, 980, 2000]
+pred = my_vgg.apply(d_norm)
+fig, axs = plt.subplots(1, 7)
+for j in range(7):
+    axs[j].imshow(data[indizes[j]])
+    label = np.argmax(pred[indizes[j], :])
+    axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
+    axs[j].axis('off')
+plt.show()
 
 # from classifier import Custom_Classifer
 # my_net = Custom_Classifer('resnet50')
@@ -173,3 +180,48 @@
 # import numpy as np
 # x = np.zeros((5, 6, 6, 3))
 # x[:, :, :, :] = np.ones((5, 6, 6))
+
+# from keras.models import Model
+# from keras.layers import Input, Lambda, BatchNormalization
+# from keras import backend as K
+# import keras
+# import numpy as np
+#
+# def myFunc(x):
+#     width = x.shape[1]
+#     height = x.shape[2]
+#     mean_tensor = K.mean(x, axis=[1,2,3])    # considering shapes of (size,width, heigth,channels)
+#     print(mean_tensor.shape)
+#     # std_tensor = K.std(x,axis=[0,1,2])
+#     result = x
+#     for i in range(2):
+#         result[i, ...] = x[i, ...] - mean_tensor[1]
+#     return result
+#     # x = K.reshape(x, (-1, 1, 1, 1))    # shapes of mean and std are (3,) here.
+#     # print(x.shape)
+#     # result = (x - mean_tensor)  # / (std_tensor + K.epsilon())
+#
+#     # return K.reshape(result, (-1, width, height, 3))
+#
+# z = np.ones((2, 10, 10, 3))
+# z[0, ...] = -0.5*z[0, ...]
+# z[1, ...] = 0.5*z[1, ...]
+# # print(np.min(z), np.max(z))
+# print(z[0, :, :, 0])
+# print(z[1, :, :, 0])
+# inp = Input(shape=(10, 10, 3))
+# x = Lambda(lambda x: (x+1)*127.5)(inp)
+# # x = Lambda(lambda x: x / K.mean(x, axis=[1, 2, 3]))(x)
+# # x = Lambda(myFunc)(x)
+# # x = BatchNormalization(axis=-1, momentum=0.0, epsilon=0.0, scale=False)(x)
+# x = Lambda(keras.applications.vgg19.preprocess_input)(x)
+# model = Model(inp, x)
+# model.compile(optimizer='Adam', loss='mse')
+# out = model.predict(z)
+# # print(np.min(out), np.max(out))
+# print(out[0, :, :, 0])
+# print(out[1, :, :, 0])
+# print(out[0, :, :, 1])
+# print(out[1, :, :, 1])
+# model.summary()
+# from keras.applications.resnet50 import preprocess_input
