@@ -318,7 +318,7 @@ class GAN_P2P():
     def train_aerial_map(self):
         # load datasets:
         print('--- Load datasets ...')
-        aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps(DATASET_PATH)
+        aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps('data/maps/ex_maps_small.hdf5')
 
         # # shrink dataset:
         # aerial_train = aerial_train[:500, ...]
@@ -364,7 +364,7 @@ class GAN_P2P():
             aerial_train = aerial_train[p]
 
             for batch_i in range(0, num_train, BATCH_SIZE):
-                # input = map, output = aerial
+                # # input = map, output = aerial
                 # get actual batch:
                 # imgs_gen_real = aerial_train[batch_i:batch_i + BATCH_SIZE]
                 # imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
@@ -511,5 +511,6 @@ def test_generator(num_images):
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    gan.train_sen12()
+    gan.train_aerial_map()
+    # gan.train_sen12()
     # translate_eurosat('real_5')
