@@ -1,6 +1,7 @@
 # imports
 import numpy as np
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import keras
@@ -13,11 +14,11 @@ from keras.optimizers import Adam
 import data_io
 import augmentation
 
-matplotlib.use('Agg')
+
 
 # TRAINING VARIABLES
 EPOCHS = 50
-BATCH_SIZE = 10
+BATCH_SIZE = 1
 IMAGES_PER_SPLIT = 2
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
@@ -27,6 +28,7 @@ DATASET_PATH = ''
 MODEL_WEIGHTS_PATH = 'models/esrgan/'
 
 # - - - - - - - - - -
+
 
 class ESRGAN():
 
