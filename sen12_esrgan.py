@@ -43,9 +43,9 @@ class ESRGAN():
         self.img_shape_target = (self.img_rows, self.img_cols, self.img_channels_target)
 
         self.num_f_g = 32
-        self.num_f_d = 32   # TODO: 64
+        self.num_f_d = 64   # TODO: 64
         self.f_size = 3
-        self.num_rrdbs = 8  # TODO: 16
+        self.num_rrdbs = 16  # TODO: 16
 
         self.generator = self.make_generator()
         # self.generator.summary()
@@ -61,9 +61,9 @@ class ESRGAN():
         self.vgg19.trainable = False
 
         # parameters to balance the loss function of the combined model:
-        self.factor_perceptual = 1
+        self.factor_perceptual = 0.1
         self.factor_adversarial = 1/0.005
-        self.factor_l1 = 1/0.01
+        self.factor_l1 = 1/0.005
 
         self.lr_g = 0.0001
         self.lr_d = 0.0001
@@ -308,15 +308,19 @@ class ESRGAN():
 
                 # train generator:
                 real_features = self.vgg19.predict(imgs_targ)
-                # g_loss = self.combined.train_on_batch(x=[imgs_cond, imgs_targ], y=[real, real_features])      # TODO
-                g_loss = self.combined.train_on_batch(x=[imgs_cond], y=[real, real_features, imgs_targ])
+                # g_loss = self.combined.train_on_batch(x=[imgs_cond, imgs_targ], y=[real[:num_samples], real_features])      # TODO
+                g_loss = self.combined.train_on_batch(x=[imgs_cond], y=[real[:num_samples], real_features, imgs_targ])
 
                 # print to stdout:
                 print_string = "[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
                 print_string += "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
-                print_string += "[G loss: {:05.2f},\t (adv.: {:04.2f}, perc.: {:05.2f}, l1: {:04.2f})]"
+                print_string += "[G loss: {:05.2f},\t "
+                print_string += "(adv.: {:04.2f} ({:04.2f}), perc.: {:05.2f} ({:04.2f}), l1: {:04.2f} ({:04.2f}))]"
                 print(print_string.format(epoch + 1, EPOCHS, int(batch_i / BATCH_SIZE), int(num_train / BATCH_SIZE),
-                                          d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1], g_loss[2], g_loss[3]))
+                                          d_loss[0], 100 * d_loss[1], g_loss[0],
+                                          g_loss[1], g_loss[1]*self.factor_adversarial,
+                                          g_loss[2], g_loss[2]*self.factor_perceptual,
+                                          g_loss[3], g_loss[3]*self.factor_l1))
 
                 if rep % SAMPLE_INTERVAL == 0:
                     i = np.random.randint(low=0, high=num_test, size=3)
