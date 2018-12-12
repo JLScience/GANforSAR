@@ -45,7 +45,7 @@ class ESRGAN():
         self.num_f_g = 32
         self.num_f_d = 32   # TODO: 64
         self.f_size = 3
-        self.num_rrdbs = 16  # TODO: 16
+        self.num_rrdbs = 8  # TODO: 16
 
         self.generator = self.make_generator()
         # self.generator.summary()
