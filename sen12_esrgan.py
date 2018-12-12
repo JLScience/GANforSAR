@@ -43,7 +43,7 @@ class ESRGAN():
         self.img_shape_target = (self.img_rows, self.img_cols, self.img_channels_target)
 
         self.num_f_g = 32
-        self.num_f_d = 64   # TODO: 64
+        self.num_f_d = 32   # TODO: 64
         self.f_size = 3
         self.num_rrdbs = 16  # TODO: 16
 
