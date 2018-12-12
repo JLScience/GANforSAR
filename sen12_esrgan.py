@@ -1,5 +1,6 @@
 # imports
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 
 import keras
@@ -11,6 +12,8 @@ from keras.optimizers import Adam
 # own packages:
 import data_io
 import augmentation
+
+matplotlib.use('Agg')
 
 # TRAINING VARIABLES
 EPOCHS = 50
@@ -396,4 +399,4 @@ class ESRGAN():
 
 if __name__ == '__main__':
     esrgan = ESRGAN()
-    esrgan.train_aerial()
+    # esrgan.train_aerial()
