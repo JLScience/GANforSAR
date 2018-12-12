@@ -147,32 +147,32 @@
 #         axs[j].axis('off')
 #     plt.show()
 
-# TEST IF CLASSIFIER WORKS WITH SEN12:
-import numpy as np
-import matplotlib.pyplot as plt
-import data_io
-import augmentation
-from classifier import Custom_Classifer
-data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [4], split_ratio=1.0)
-data = augmentation.split_images(data, 4)
-# data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
-# data_norm = augmentation.to_gray(data_norm, mode=3)
-d_norm = np.array(data[..., ::-1])
-vgg19_means = [103.939, 116.779, 123.68]
-for k in range(3):
-    d_norm[:, :, :, k] = np.array(d_norm[:, :, :, k] - vgg19_means[k], dtype=np.float32)
-print(data.shape)
-my_vgg = Custom_Classifer('resnet50')
-my_vgg.load_trained_model('resnet50_opt_7_correct_norm')
-indizes = [20, 60, 300, 450, 750, 980, 2000]
-pred = my_vgg.apply(d_norm)
-fig, axs = plt.subplots(1, 7)
-for j in range(7):
-    axs[j].imshow(data[indizes[j]])
-    label = np.argmax(pred[indizes[j], :])
-    axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
-    axs[j].axis('off')
-plt.show()
+# # TEST IF CLASSIFIER WORKS WITH SEN12:
+# import numpy as np
+# import matplotlib.pyplot as plt
+# import data_io
+# import augmentation
+# from classifier import Custom_Classifer
+# data, _, _, _ = data_io.load_Sen12_data('/home/jlscience/PycharmProjects/SAR_GAN/data/Sen1-2/summer/', [4], split_ratio=1.0)
+# data = augmentation.split_images(data, 4)
+# # data_norm = np.array(data / 127.5 - 1, dtype=np.float32)
+# # data_norm = augmentation.to_gray(data_norm, mode=3)
+# d_norm = np.array(data[..., ::-1])
+# vgg19_means = [103.939, 116.779, 123.68]
+# for k in range(3):
+#     d_norm[:, :, :, k] = np.array(d_norm[:, :, :, k] - vgg19_means[k], dtype=np.float32)
+# print(data.shape)
+# my_vgg = Custom_Classifer('resnet50')
+# my_vgg.load_trained_model('resnet50_opt_7_correct_norm')
+# indizes = [20, 60, 300, 450, 750, 980, 2000]
+# pred = my_vgg.apply(d_norm)
+# fig, axs = plt.subplots(1, 7)
+# for j in range(7):
+#     axs[j].imshow(data[indizes[j]])
+#     label = np.argmax(pred[indizes[j], :])
+#     axs[j].set_title('l: {}, c.: {}%'.format(my_vgg.class_names_ger[label], int(100 * pred[indizes[j], label])))
+#     axs[j].axis('off')
+# plt.show()
 
 # from classifier import Custom_Classifer
 # my_net = Custom_Classifer('resnet50')
@@ -225,3 +225,16 @@ plt.show()
 # print(out[1, :, :, 1])
 # model.summary()
 # from keras.applications.resnet50 import preprocess_input
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--lr_g', type=float, default=1e-4, help='Learning rate', required=True)
+parser.add_argument('--lr_d', type=float, default=2e-4, help='Learning rate', required=False)
+parser.add_argument('--abc', type=int, default=0, help='ABC', required=False)
+args = parser.parse_args()
+my_lr_g = args.lr_g
+my_lr_d = args.lr_d
+print(my_lr_g)
+print(my_lr_d)
+print(args)
+

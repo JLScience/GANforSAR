@@ -1,4 +1,5 @@
 # imports
+import argparse
 import os
 import numpy as np
 import matplotlib
@@ -33,7 +34,7 @@ MODEL_WEIGHTS_PATH = 'models/esrgan/'
 
 class ESRGAN():
 
-    def __init__(self):
+    def __init__(self, arguments):
         self.name_string = ''
         self.img_rows = 128
         self.img_cols = 128
@@ -61,12 +62,12 @@ class ESRGAN():
         self.vgg19.trainable = False
 
         # parameters to balance the loss function of the combined model:
-        self.factor_perceptual = 0.1
-        self.factor_adversarial = 1/0.005
-        self.factor_l1 = 1/0.005
+        self.factor_perceptual = arguments.f_perc
+        self.factor_adversarial = arguments.f_adv
+        self.factor_l1 = arguments.f_l1
 
-        self.lr_g = 0.0001
-        self.lr_d = 0.0001
+        self.lr_g = arguments.lr_g
+        self.lr_d = arguments.lr_d
 
         self.opt_g = Adam(self.lr_g)
         self.opt_d = Adam(self.lr_d)
@@ -418,6 +419,17 @@ class ESRGAN():
         return img_out
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
+    parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
+    parser.add_argument('--f_perc', type=float, default=1, help='Perceptual loss weighting factor')
+    parser.add_argument('--f_adv', type=float, default=0.005, help='Adversarial loss weighting factor')
+    parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    esrgan = ESRGAN()
+    args = parse_arguments()
+    esrgan = ESRGAN(args)
     esrgan.train_aerial()
