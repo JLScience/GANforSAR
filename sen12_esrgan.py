@@ -1,4 +1,5 @@
 # imports
+import os
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -243,6 +244,9 @@ class ESRGAN():
 
     def train_aerial(self):
         self.name_string = self.name_string + 'aerial'
+
+        os.mkdir(GENERATED_DATA_LOCATION + self.name_string)
+
         print('--- Load datasets ...')
         aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps('data/maps/ex_maps_small.hdf5')
 
