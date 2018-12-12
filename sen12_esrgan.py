@@ -35,7 +35,7 @@ MODEL_WEIGHTS_PATH = 'models/esrgan/'
 class ESRGAN():
 
     def __init__(self, args):
-        self.name_string = ''
+        self.name_string = args.path_addition
         self.img_rows = 128
         self.img_cols = 128
         self.img_channels_condition = 3
@@ -245,7 +245,7 @@ class ESRGAN():
         # return Model(vgg_inp, vgg.layers[20].output, name='VGG19')
 
     def train_aerial(self):
-        self.name_string = self.name_string + 'aerial'
+        self.name_string = 'aerial' + self.name_string
 
         os.mkdir(GENERATED_DATA_LOCATION + self.name_string)
 
@@ -422,6 +422,8 @@ class ESRGAN():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--path_addition', type=str, default='', required=True,
+                        help='Additional naming of the output and model directory')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
     parser.add_argument('--f_perc', type=float, default=1, help='Perceptual loss weighting factor')
@@ -429,11 +431,12 @@ def parse_arguments():
     parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
 
     args = parser.parse_args()
-    print('Discriminator learning rate :{}'.format(args.lr_d))
-    print('Generator learning rate: {}'.format(args.lr_g))
-    print('Perceptual loss weighting factor: {}'.format(args.f_perc))
-    print('Adversarial loss weighting factor: {}'.format(args.f_adv))
-    print('L1 loss weighting factor: {}'.format(args.f_l1))
+    print('[Parser] - Additional naming of the output and model directory: {}'.format(args.path_addition))
+    print('[Parser] - Discriminator learning rate :{}'.format(args.lr_d))
+    print('[Parser] - Generator learning rate: {}'.format(args.lr_g))
+    print('[Parser] - Perceptual loss weighting factor: {}'.format(args.f_perc))
+    print('[Parser] - Adversarial loss weighting factor: {}'.format(args.f_adv))
+    print('[Parser] - L1 loss weighting factor: {}'.format(args.f_l1))
 
     return args
 
