@@ -19,7 +19,7 @@ import augmentation
 
 # TRAINING VARIABLES
 EPOCHS = 50
-BATCH_SIZE = 1
+BATCH_SIZE = 10
 IMAGES_PER_SPLIT = 2
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
@@ -35,8 +35,8 @@ class ESRGAN():
 
     def __init__(self):
         self.name_string = ''
-        self.img_rows = 256
-        self.img_cols = 256
+        self.img_rows = 128
+        self.img_cols = 128
         self.img_channels_condition = 3
         self.img_channels_target = 3
         self.img_shape_condition = (self.img_rows, self.img_cols, self.img_channels_condition)
@@ -255,6 +255,17 @@ class ESRGAN():
         # map_train = map_train[:500, ...]
         aerial_test = aerial_test[:100, ...]
         map_test = map_test[:100, ...]
+
+        # cut images:
+        print('--- divide images ...')
+        aerial_train = augmentation.split_images(aerial_train, 2)
+        print('sar_test done')
+        map_train = augmentation.split_images(map_train, 2)
+        print('opt_test done')
+        aerial_test = augmentation.split_images(aerial_test, 2)
+        print('sar_train done')
+        map_test = augmentation.split_images(map_test, 2)
+        print('opt_train done')
 
         # normalize datasets:
         print('--- normalize datasets ...')
