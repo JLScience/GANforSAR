@@ -34,7 +34,7 @@ MODEL_WEIGHTS_PATH = 'models/esrgan/'
 
 class ESRGAN():
 
-    def __init__(self, arguments):
+    def __init__(self, args):
         self.name_string = ''
         self.img_rows = 128
         self.img_cols = 128
@@ -62,12 +62,12 @@ class ESRGAN():
         self.vgg19.trainable = False
 
         # parameters to balance the loss function of the combined model:
-        self.factor_perceptual = arguments.f_perc
-        self.factor_adversarial = arguments.f_adv
-        self.factor_l1 = arguments.f_l1
+        self.factor_perceptual = args.f_perc
+        self.factor_adversarial = args.f_adv
+        self.factor_l1 = args.f_l1
 
-        self.lr_g = arguments.lr_g
-        self.lr_d = arguments.lr_d
+        self.lr_g = args.lr_g
+        self.lr_d = args.lr_d
         print(self.lr_d)
 
         self.opt_g = Adam(self.lr_g)
@@ -433,12 +433,12 @@ def parse_arguments():
     print('Generator learning rate: {}'.format(args.lr_g))
     print('Perceptual loss weighting factor: {}'.format(args.f_perc))
     print('Adversarial loss weighting factor: {}'.format(args.f_adv))
-    print('L1 loss weighting factor: {}'.format(argparse.f_l1))
+    print('L1 loss weighting factor: {}'.format(args.f_l1))
 
     return args
 
 
 if __name__ == '__main__':
-    args = parse_arguments()
-    esrgan = ESRGAN(args)
+    arguments = parse_arguments()
+    esrgan = ESRGAN(arguments)
     esrgan.train_aerial()
