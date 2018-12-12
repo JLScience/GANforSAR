@@ -68,6 +68,7 @@ class ESRGAN():
 
         self.lr_g = arguments.lr_g
         self.lr_d = arguments.lr_d
+        print(self.lr_d)
 
         self.opt_g = Adam(self.lr_g)
         self.opt_d = Adam(self.lr_d)
@@ -426,7 +427,15 @@ def parse_arguments():
     parser.add_argument('--f_perc', type=float, default=1, help='Perceptual loss weighting factor')
     parser.add_argument('--f_adv', type=float, default=0.005, help='Adversarial loss weighting factor')
     parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
-    return parser.parse_args()
+
+    args = parser.parse_args()
+    print('Discriminator learning rate :{}'.format(args.lr_d))
+    print('Generator learning rate: {}'.format(args.lr_g))
+    print('Perceptual loss weighting factor: {}'.format(args.f_perc))
+    print('Adversarial loss weighting factor: {}'.format(args.f_adv))
+    print('L1 loss weighting factor: {}'.format(argparse.f_l1))
+
+    return args
 
 
 if __name__ == '__main__':
