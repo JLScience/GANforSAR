@@ -399,4 +399,4 @@ class ESRGAN():
 
 if __name__ == '__main__':
     esrgan = ESRGAN()
-    # esrgan.train_aerial()
+    esrgan.train_aerial()
