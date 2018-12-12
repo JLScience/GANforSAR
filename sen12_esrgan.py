@@ -68,7 +68,6 @@ class ESRGAN():
 
         self.lr_g = args.lr_g
         self.lr_d = args.lr_d
-        print(self.lr_d)
 
         self.opt_g = Adam(self.lr_g)
         self.opt_d = Adam(self.lr_d)
@@ -245,7 +244,7 @@ class ESRGAN():
         # return Model(vgg_inp, vgg.layers[20].output, name='VGG19')
 
     def train_aerial(self):
-        self.name_string = 'aerial' + self.name_string
+        self.name_string = 'aerial_' + self.name_string
 
         os.mkdir(GENERATED_DATA_LOCATION + self.name_string)
 
@@ -432,7 +431,7 @@ def parse_arguments():
 
     args = parser.parse_args()
     print('[Parser] - Additional naming of the output and model directory: {}'.format(args.path_addition))
-    print('[Parser] - Discriminator learning rate :{}'.format(args.lr_d))
+    print('[Parser] - Discriminator learning rate : {}'.format(args.lr_d))
     print('[Parser] - Generator learning rate: {}'.format(args.lr_g))
     print('[Parser] - Perceptual loss weighting factor: {}'.format(args.f_perc))
     print('[Parser] - Adversarial loss weighting factor: {}'.format(args.f_adv))
