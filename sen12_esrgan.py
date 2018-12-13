@@ -107,13 +107,13 @@ class ESRGAN():
 
             def rel_avg_disc_loss(y_true, y_pred):
                 eps = 1e-6
-                return -(K.mean(K.log(eps + K.sigmoid(disc_real - K.mean(disc_fake, axis=0))), axis=0)
-                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_fake - K.mean(disc_real, axis=0))), axis=0))
+                return -(K.mean(K.log(eps + K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2])
+                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2]))
 
             def rel_avg_gen_loss(y_true, y_pred):
                 eps = 1e-6
-                return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=0))), axis=0)
-                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=0))), axis=0))
+                return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2])
+                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2]))
 
             # Discriminator:
             self.combined_disc = Model(inputs=[img_opt, img_sar],

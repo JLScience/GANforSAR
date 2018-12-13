@@ -226,15 +226,24 @@
 # model.summary()
 # from keras.applications.resnet50 import preprocess_input
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--lr_g', type=float, default=1e-4, help='Learning rate', required=True)
-parser.add_argument('--lr_d', type=float, default=2e-4, help='Learning rate', required=False)
-parser.add_argument('--abc', type=int, default=0, help='ABC', required=False)
-args = parser.parse_args()
-my_lr_g = args.lr_g
-my_lr_d = args.lr_d
-print(my_lr_g)
-print(my_lr_d)
-print(args)
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--lr_g', type=float, default=1e-4, help='Learning rate', required=True)
+# parser.add_argument('--lr_d', type=float, default=2e-4, help='Learning rate', required=False)
+# parser.add_argument('--abc', type=int, default=0, help='ABC', required=False)
+# args = parser.parse_args()
+# my_lr_g = args.lr_g
+# my_lr_d = args.lr_d
+# print(my_lr_g)
+# print(my_lr_d)
+# print(args)
 
+import numpy as np
+
+z = np.zeros((10, 8, 8, 1))
+mz = np.mean(z, axis=0)
+print(mz.shape)
+
+zeta = np.zeros((10, 1))
+mzeta = np.mean(zeta, axis=0)
+print(mzeta.shape)
