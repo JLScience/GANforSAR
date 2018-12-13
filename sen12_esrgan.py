@@ -36,6 +36,7 @@ MODEL_WEIGHTS_PATH = 'models/esrgan/'
 class ESRGAN():
 
     def __init__(self, args):
+        self.use_relativistic_loss = args.rel
         self.name_string = args.path_addition
         self.img_rows = 128
         self.img_cols = 128
@@ -52,7 +53,7 @@ class ESRGAN():
         self.generator = self.make_generator()
         # self.generator.summary()
 
-        if not args.rel:
+        if not self.use_relativistic_loss:
             self.discriminator = self.make_discriminator(relativistic=False)
         else:
             self.discriminator = self.make_discriminator(relativistic=True)
@@ -77,7 +78,7 @@ class ESRGAN():
         self.opt_d = Adam(self.lr_d)
 
         # without relativistic average discriminator:
-        if not args.rel:
+        if not self.use_relativistic_loss:
             # compile discriminator:
             self.discriminator.compile(optimizer=self.opt_d, loss='mse', metrics=['accuracy'])
 
@@ -114,6 +115,7 @@ class ESRGAN():
                 return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=0))), axis=0)
                          + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=0))), axis=0))
 
+            # Discriminator:
             self.combined_disc = Model(inputs=[img_opt, img_sar],
                                        outputs=[disc_real, disc_fake],
                                        name='Discriminator_Train')
@@ -123,6 +125,7 @@ class ESRGAN():
                                        metrics=['accuracy'])
             self.combined_disc.summary()
 
+            # Generator:
             self.combined_gen = Model(inputs=[img_opt, img_sar],
                                       outputs=[disc_real, disc_fake, fake_features, img_fake],
                                       name='Generator_Train')
@@ -335,6 +338,7 @@ class ESRGAN():
         # discriminator targets:
         real = np.ones(self.discriminator_output_shape)
         fake = np.zeros(self.discriminator_output_shape)
+        dummy = np.zeros(self.discriminator_output_shape)
 
         rep = 0
         for epoch in range(EPOCHS):
@@ -349,18 +353,24 @@ class ESRGAN():
                 imgs_targ = aerial_train[batch_i:batch_i + BATCH_SIZE]
 
                 imgs_gen = self.generator.predict(imgs_cond)
+                real_features = self.vgg19.predict(imgs_targ)
 
                 num_samples = imgs_targ.shape[0]
 
                 # train discriminator:
-                real_loss = self.discriminator.train_on_batch(imgs_targ, real[:num_samples])
-                fake_loss = self.discriminator.train_on_batch(imgs_gen, fake[:num_samples])
-                d_loss = 0.5 * np.add(real_loss, fake_loss)
+                if not self.use_relativistic_loss:
+                    real_loss = self.discriminator.train_on_batch(imgs_targ, real[:num_samples])
+                    fake_loss = self.discriminator.train_on_batch(imgs_gen, fake[:num_samples])
+                    d_loss = 0.5 * np.add(real_loss, fake_loss)
+                else:
+                    d_loss = self.combined_disc.train_on_batch(x=[imgs_cond, imgs_targ], y=[dummy[:num_samples]])
+                    d_loss = [d_loss[0], d_loss[2]]
 
                 # train generator:
-                real_features = self.vgg19.predict(imgs_targ)
-                # g_loss = self.combined.train_on_batch(x=[imgs_cond, imgs_targ], y=[real[:num_samples], real_features])      # TODO
-                g_loss = self.combined.train_on_batch(x=[imgs_cond], y=[real[:num_samples], real_features, imgs_targ])
+                if not self.use_relativistic_loss:
+                    g_loss = self.combined.train_on_batch(x=[imgs_cond], y=[real[:num_samples], real_features, imgs_targ])
+                else:
+                    g_loss = self.combined_gen.train_on_batch(x=[imgs_cond, imgs_targ], y=[dummy[:num_samples], real_features, imgs_targ])
 
                 # print to stdout:
                 print_string = "[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
@@ -472,7 +482,7 @@ class ESRGAN():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_addition', type=str, default='', required=False,
+    parser.add_argument('--path_addition', type=str, default='', required=True,
                         help='Additional naming of the output and model directory')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
@@ -496,4 +506,4 @@ def parse_arguments():
 if __name__ == '__main__':
     arguments = parse_arguments()
     esrgan = ESRGAN(arguments)
-    # esrgan.train_aerial()
+    esrgan.train_aerial()
