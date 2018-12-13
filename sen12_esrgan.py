@@ -3,10 +3,12 @@ import argparse
 import os
 import numpy as np
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import keras
+from keras import backend as K
 from keras.models import Model
 from keras.layers import Conv2D, LeakyReLU, Concatenate, Lambda, Dense, Add, Input, BatchNormalization, MaxPooling2D
 
@@ -15,8 +17,6 @@ from keras.optimizers import Adam
 # own packages:
 import data_io
 import augmentation
-
-
 
 # TRAINING VARIABLES
 EPOCHS = 50
@@ -28,6 +28,7 @@ GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
 GENERATED_DATA_LOCATION = 'generated_images/esrgan/'
 DATASET_PATH = ''
 MODEL_WEIGHTS_PATH = 'models/esrgan/'
+
 
 # - - - - - - - - - -
 
@@ -44,14 +45,17 @@ class ESRGAN():
         self.img_shape_target = (self.img_rows, self.img_cols, self.img_channels_target)
 
         self.num_f_g = 32
-        self.num_f_d = 32   # TODO: 64
+        self.num_f_d = 32  # TODO: 64
         self.f_size = 3
         self.num_rrdbs = 8  # TODO: 16
 
         self.generator = self.make_generator()
         # self.generator.summary()
 
-        self.discriminator = self.make_discriminator()
+        if not args.rel:
+            self.discriminator = self.make_discriminator(relativistic=False)
+        else:
+            self.discriminator = self.make_discriminator(relativistic=True)
         # self.discriminator.summary()
         self.discriminator_output_shape = list(self.discriminator.output_shape)
         self.discriminator_output_shape[0] = BATCH_SIZE
@@ -72,23 +76,63 @@ class ESRGAN():
         self.opt_g = Adam(self.lr_g)
         self.opt_d = Adam(self.lr_d)
 
-        # compile discriminator:
-        self.discriminator.compile(optimizer=self.opt_d, loss='mse', metrics=['accuracy'])
+        # without relativistic average discriminator:
+        if not args.rel:
+            # compile discriminator:
+            self.discriminator.compile(optimizer=self.opt_d, loss='mse', metrics=['accuracy'])
 
-        # create and compile combined model:
-        self.discriminator.trainable = False
-        img_opt = Input(shape=self.img_shape_condition)
-        # img_sar = Input(shape=self.img_shape_target)
-        img_fake = self.generator(img_opt)
-        fake_features = self.vgg19(img_fake)
-        validity = self.discriminator(img_fake)
-        # self.combined = Model(inputs=[img_opt, img_sar], outputs=[validity, fake_features])           # TODO
-        self.combined = Model(inputs=[img_opt], outputs=[validity, fake_features, img_fake])
-        # self.combined.compile(optimizer=self.opt_g, loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1])
-        self.combined.compile(optimizer=self.opt_g,
-                              loss=['binary_crossentropy', 'mse', 'mae'],
-                              loss_weights=[self.factor_adversarial, self.factor_perceptual, self.factor_l1])
-        self.combined.summary()
+            # create and compile combined model:
+            self.discriminator.trainable = False
+            img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
+            # img_sar = Input(shape=self.img_shape_target)
+            img_fake = self.generator(img_opt)
+            fake_features = self.vgg19(img_fake)
+            validity = self.discriminator(img_fake)
+            # self.combined = Model(inputs=[img_opt, img_sar], outputs=[validity, fake_features])           # TODO
+            self.combined = Model(inputs=[img_opt], outputs=[validity, fake_features, img_fake])
+            # self.combined.compile(optimizer=self.opt_g, loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1])
+            self.combined.compile(optimizer=self.opt_g,
+                                  loss=['binary_crossentropy', 'mse', 'mae'],
+                                  loss_weights=[self.factor_adversarial, self.factor_perceptual, self.factor_l1])
+            self.combined.summary()
+        # with relativistic average discriminator:
+        else:
+            img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
+            img_sar = Input(shape=self.img_shape_target, name='Inp_target')
+            img_fake = self.generator(img_opt)
+            disc_real = self.discriminator(img_sar)
+            disc_fake = self.discriminator(img_fake)
+            fake_features = self.vgg19(img_fake)
+
+            def rel_avg_disc_loss(y_true, y_pred):
+                eps = 1e-6
+                return -(K.mean(K.log(eps + K.sigmoid(disc_real - K.mean(disc_fake, axis=0))), axis=0)
+                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_fake - K.mean(disc_real, axis=0))), axis=0))
+
+            def rel_avg_gen_loss(y_true, y_pred):
+                eps = 1e-6
+                return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=0))), axis=0)
+                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=0))), axis=0))
+
+            self.combined_disc = Model(inputs=[img_opt, img_sar],
+                                       outputs=[disc_real, disc_fake],
+                                       name='Discriminator_Train')
+            self.generator.trainable = False
+            self.combined_disc.compile(optimizer=self.opt_d,
+                                       loss=[rel_avg_disc_loss, None],
+                                       metrics=['accuracy'])
+            self.combined_disc.summary()
+
+            self.combined_gen = Model(inputs=[img_opt, img_sar],
+                                      outputs=[disc_real, disc_fake, fake_features, img_fake],
+                                      name='Generator_Train')
+            self.generator.trainable = True
+            self.discriminator.trainable = False
+            self.combined_gen.compile(optimizer=self.opt_g,
+                                      loss=[rel_avg_gen_loss, None, 'mse', 'mae'],
+                                      loss_weights=[self.factor_adversarial, self.factor_adversarial,
+                                                    self.factor_perceptual, self.factor_l1])
+            self.combined_gen.summary()
 
     def make_generator(self):
 
@@ -123,7 +167,7 @@ class ESRGAN():
 
         inp = Input(shape=self.img_shape_condition)
         # first convolution (no activation function):
-        outp = conv_lrelu(inp, filters=self.num_f_g, f_size=self.f_size*3)
+        outp = conv_lrelu(inp, filters=self.num_f_g, f_size=self.f_size * 3)
         # save output of first convolution to add it to the output of the RRDB's:
         out1 = outp
         # RRDB's:
@@ -138,10 +182,11 @@ class ESRGAN():
         # two convolutions at the end; the first with LeakyReLU, the second with tanh (not mentioned in paper)
         outp = conv_lrelu(outp, filters=self.num_f_g, f_size=self.f_size, use_act=True, alpha=0.2)
         # outp = conv_lrelu(outp, filters=self.img_channels_sar, f_size=self.f_size*3)
-        outp = Conv2D(filters=self.img_channels_target, kernel_size=self.f_size * 3, activation='tanh', strides=1, padding='same')(outp)
+        outp = Conv2D(filters=self.img_channels_target, kernel_size=self.f_size * 3, activation='tanh', strides=1,
+                      padding='same')(outp)
         return Model(inp, outp, name='Generator')
 
-    def make_discriminator(self):
+    def make_discriminator(self, relativistic):
         def conv_block(inp, filters, f_size, strides, alpha, use_bn=True):
             outp = Conv2D(filters, kernel_size=f_size, strides=strides, padding='same')(inp)
             if use_bn:
@@ -161,13 +206,16 @@ class ESRGAN():
         # outp = Flatten()(outp)
         outp = Dense(1024)(outp)
         outp = LeakyReLU(0.2)(outp)
-        outp = Dense(1, activation='sigmoid')(outp)
+        if relativistic:
+            outp = Dense(1)(outp)
+        else:
+            outp = Dense(1, activation='sigmoid')(outp)
         return Model(inp, outp, name='Discriminator')
 
     def make_vgg19(self, low_level_features_only=False):
         vgg19_means = [103.939, 116.779, 123.68]
 
-        vgg_inp = Input(shape=(self.img_rows, self.img_cols, 3))     # 3 channels are required for VGG19
+        vgg_inp = Input(shape=(self.img_rows, self.img_cols, 3))  # 3 channels are required for VGG19
         # Block 1
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(vgg_inp)
         x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(x)
@@ -211,7 +259,8 @@ class ESRGAN():
         # Load the weights:
         vgg = Model(vgg_inp, x)
         WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5'
-        weights_path = keras.applications.vgg19.get_file('vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5', WEIGHTS_PATH_NO_TOP, cache_subdir='models')
+        weights_path = keras.applications.vgg19.get_file('vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5',
+                                                         WEIGHTS_PATH_NO_TOP, cache_subdir='models')
         if low_level_features_only:
             vgg.load_weights(weights_path, by_name=True)
             vgg.outputs = [vgg.layers[10].output]
@@ -225,7 +274,7 @@ class ESRGAN():
         # normalize as expected by VGG19
         # (roughly; expected is mean subtraction; here we just subtract 127.5 from [0, 255] (input is in [-1, 1]))
         # rescale from [-1, 1] to [0, 255]
-        outp = Lambda(lambda x: (x+1) * 127.5, name='rescale_to_255')(inp)
+        outp = Lambda(lambda x: (x + 1) * 127.5, name='rescale_to_255')(inp)
         if self.img_channels_target == 1:
             # transform rgb-->bgr and subtract means as done in the VGG19 paper:
             out3 = Lambda(lambda x: x - vgg19_means[0], name='sub_mean_B')(outp)
@@ -236,7 +285,8 @@ class ESRGAN():
             # just a toy solution , one normally has to transform rgb-->bgr and then subtract each mean
             outp = Lambda(lambda x: x - 127.5)(outp)
         else:
-            raise ValueError('VGG requires target channels to be either 1 or 3, you passed ' + str(self.img_channels_target))
+            raise ValueError(
+                'VGG requires target channels to be either 1 or 3, you passed ' + str(self.img_channels_target))
         outp = vgg(outp)
         return Model(inp, outp, name='VGG19')
 
@@ -295,8 +345,8 @@ class ESRGAN():
 
             for batch_i in range(0, num_train, BATCH_SIZE):
                 # get batch:
-                imgs_cond = map_train[batch_i:batch_i+BATCH_SIZE]
-                imgs_targ = aerial_train[batch_i:batch_i+BATCH_SIZE]
+                imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_targ = aerial_train[batch_i:batch_i + BATCH_SIZE]
 
                 imgs_gen = self.generator.predict(imgs_cond)
 
@@ -319,9 +369,9 @@ class ESRGAN():
                 print_string += "(adv.: {:04.2f} ({:04.2f}), perc.: {:05.2f} ({:04.2f}), l1: {:04.2f} ({:04.2f}))]"
                 print(print_string.format(epoch + 1, EPOCHS, int(batch_i / BATCH_SIZE), int(num_train / BATCH_SIZE),
                                           d_loss[0], 100 * d_loss[1], g_loss[0],
-                                          g_loss[1], g_loss[1]*self.factor_adversarial,
-                                          g_loss[2], g_loss[2]*self.factor_perceptual,
-                                          g_loss[3], g_loss[3]*self.factor_l1))
+                                          g_loss[1], g_loss[1] * self.factor_adversarial,
+                                          g_loss[2], g_loss[2] * self.factor_perceptual,
+                                          g_loss[3], g_loss[3] * self.factor_l1))
 
                 if rep % SAMPLE_INTERVAL == 0:
                     i = np.random.randint(low=0, high=num_test, size=3)
@@ -371,7 +421,8 @@ class ESRGAN():
                     axs[i, 6].imshow(imgs_gen_real[i, ...])
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
-            fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
+            fig.savefig(
+                GENERATED_DATA_LOCATION + self.name_string + '/' + 'evolution_{}_{}.png'.format(epoch + 1, repetition))
             plt.close()
 
     def sample_images(self, epoch, repetition, img_batch):
@@ -403,7 +454,7 @@ class ESRGAN():
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 
-        fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + '{}_{}.png'.format(epoch+1, repetition))
+        fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + '{}_{}.png'.format(epoch + 1, repetition))
         plt.close()
 
     def save_generator(self, name):
@@ -421,13 +472,14 @@ class ESRGAN():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_addition', type=str, default='', required=True,
+    parser.add_argument('--path_addition', type=str, default='', required=False,
                         help='Additional naming of the output and model directory')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
     parser.add_argument('--f_perc', type=float, default=1, help='Perceptual loss weighting factor')
     parser.add_argument('--f_adv', type=float, default=0.005, help='Adversarial loss weighting factor')
     parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
+    parser.add_argument('--rel', type=bool, default=True, help='Switch to control usage of relativistic discriminator')
 
     args = parser.parse_args()
     print('[Parser] - Additional naming of the output and model directory: {}'.format(args.path_addition))
@@ -436,6 +488,7 @@ def parse_arguments():
     print('[Parser] - Perceptual loss weighting factor: {}'.format(args.f_perc))
     print('[Parser] - Adversarial loss weighting factor: {}'.format(args.f_adv))
     print('[Parser] - L1 loss weighting factor: {}'.format(args.f_l1))
+    print('[Parser] - Use relativistic discriminator: {}'.format(args.rel))
 
     return args
 
@@ -443,4 +496,4 @@ def parse_arguments():
 if __name__ == '__main__':
     arguments = parse_arguments()
     esrgan = ESRGAN(arguments)
-    esrgan.train_aerial()
+    # esrgan.train_aerial()
