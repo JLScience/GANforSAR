@@ -588,7 +588,7 @@ class ESRGAN():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_addition', type=str, default='', required=False,                # TODO
+    parser.add_argument('--path_addition', type=str, default='', required=True,
                         help='Additional naming of the output and model directory')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
