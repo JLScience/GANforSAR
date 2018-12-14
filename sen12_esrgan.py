@@ -21,7 +21,7 @@ import augmentation
 # TRAINING VARIABLES
 EPOCHS = 50
 BATCH_SIZE = 20
-IMAGES_PER_SPLIT = 2
+IMGS_PER_SPLIT = 2
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
@@ -49,9 +49,10 @@ class ESRGAN():
                 self.data_configuration = float(args.data_config[0])
 
         # network settings:
+        self.size = 128
         self.use_relativistic_loss = args.rel
-        self.img_rows = 64
-        self.img_cols = 64
+        self.img_rows = self.size
+        self.img_cols = self.size
         self.img_channels_condition = 3
         self.img_channels_target = 1
         self.img_shape_condition = (self.img_rows, self.img_cols, self.img_channels_condition)
@@ -317,14 +318,15 @@ class ESRGAN():
             portion_mode=self.data_configuration, split_mode='same', split_ratio=0.8)
 
         # cut images (from 256x256 to 64x64):
+        f = int(256 / self.size)
         print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=f, num_images_per_split=IMGS_PER_SPLIT)
         print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=f, num_images_per_split=IMGS_PER_SPLIT)
         print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=f, num_images_per_split=IMGS_PER_SPLIT)
         print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=f, num_images_per_split=IMGS_PER_SPLIT)
         print('opt_train done')
 
         # normalize datasets:
