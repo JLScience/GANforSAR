@@ -419,7 +419,7 @@ class ESRGAN():
                     img_batch = dataset_sar_test[GENERATOR_EVOLUTION_INDIZES], dataset_opt_test[GENERATOR_EVOLUTION_INDIZES]
                     self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
                 rep += 1
-            self.save_generator(self.name_string)
+        self.save_generator(self.name_string)
 
     def train_aerial(self):
         self.name_string = 'aerial_' + self.name_string
