@@ -19,9 +19,6 @@ import data_io
 import augmentation
 
 # TRAINING VARIABLES
-EPOCHS = 50
-BATCH_SIZE = 5
-IMGS_PER_SPLIT = 2
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
@@ -39,6 +36,11 @@ class ESRGAN():
         # name addition of directory:
         self.name_string = args.path_addition
 
+        # training parameters:
+        self.EPOCHS = args.epochs
+        self.BATCH_SIZE = args.batch_size
+        self.IMGS_PER_SPLIT = args.imgs_per_split
+
         # specify Sen12 data usage:
         if len(args.data_config) > 1:
             self.data_configuration = [int(a) for a in args.data_config]
@@ -49,7 +51,7 @@ class ESRGAN():
                 self.data_configuration = float(args.data_config[0])
 
         # network settings:
-        self.size = 128
+        self.size = args.img_size
         self.use_relativistic_loss = args.rel
         self.img_rows = self.size
         self.img_cols = self.size
@@ -72,7 +74,7 @@ class ESRGAN():
             self.discriminator = self.make_discriminator(relativistic=True)
         # self.discriminator.summary()
         self.discriminator_output_shape = list(self.discriminator.output_shape)
-        self.discriminator_output_shape[0] = BATCH_SIZE
+        self.discriminator_output_shape[0] = self.BATCH_SIZE
         self.discriminator_output_shape = tuple(self.discriminator_output_shape)
 
         self.vgg19 = self.make_vgg19(low_level_features_only=False)
@@ -320,13 +322,17 @@ class ESRGAN():
         # cut images (from 256x256 to 64x64):
         f = int(256 / self.size)
         print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=f, num_images_per_split=IMGS_PER_SPLIT)
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=f,
+                                                     num_images_per_split=self.IMGS_PER_SPLIT)
         print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=f, num_images_per_split=IMGS_PER_SPLIT)
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=f,
+                                                     num_images_per_split=self.IMGS_PER_SPLIT)
         print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=f, num_images_per_split=IMGS_PER_SPLIT)
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=f,
+                                                      num_images_per_split=self.IMGS_PER_SPLIT)
         print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=f, num_images_per_split=IMGS_PER_SPLIT)
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=f,
+                                                      num_images_per_split=self.IMGS_PER_SPLIT)
         print('opt_train done')
 
         # normalize datasets:
@@ -348,22 +354,22 @@ class ESRGAN():
         dummy = np.zeros(self.discriminator_output_shape)
 
         rep = 0
-        for epoch in range(EPOCHS):
+        for epoch in range(self.EPOCHS):
 
             # shuffle datasets:
             p = np.random.permutation(num_train)
             dataset_opt_train = dataset_opt_train[p]
             dataset_sar_train = dataset_sar_train[p]
 
-            for batch_i in range(0, num_train, BATCH_SIZE):
+            for batch_i in range(0, num_train, self.BATCH_SIZE):
                 # TODO: adjust learning rate:
                 # print(K.get_value(self.combined_gen.optimizer.lr))
                 # if rep == 10:
                 #     K.set_value(self.combined_gen.optimizer.lr, 0.0002)
 
                 # get batch:
-                imgs_cond = dataset_opt_train[batch_i:batch_i + BATCH_SIZE]
-                imgs_targ = dataset_sar_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_cond = dataset_opt_train[batch_i:batch_i + self.BATCH_SIZE]
+                imgs_targ = dataset_sar_train[batch_i:batch_i + self.BATCH_SIZE]
 
                 imgs_gen = self.generator.predict(imgs_cond)
                 real_features = self.vgg19.predict(imgs_targ)
@@ -384,7 +390,8 @@ class ESRGAN():
                 print_string += "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
                 print_string += "[G loss: {:05.2f},\t "
                 print_string += "(adv.: {:04.2f} ({:04.2f}), perc.: {:05.2f} ({:04.2f}), l1: {:04.2f} ({:04.2f}))]"
-                print(print_string.format(epoch + 1, EPOCHS, int(batch_i / BATCH_SIZE), int(num_train / BATCH_SIZE),
+                print(print_string.format(epoch + 1, self.EPOCHS,
+                                          int(batch_i / self.BATCH_SIZE), int(num_train / self.BATCH_SIZE),
                                           d_loss[0], 100 * d_loss[1], g_loss[0],
                                           g_loss[1], g_loss[1] * self.factor_adversarial,
                                           g_loss[2], g_loss[2] * self.factor_perceptual,
@@ -444,21 +451,21 @@ class ESRGAN():
         dummy = np.zeros(self.discriminator_output_shape)
 
         rep = 0
-        for epoch in range(EPOCHS):
+        for epoch in range(self.EPOCHS):
             # shuffle datasets:
             p = np.random.permutation(num_train)
             map_train = map_train[p]
             aerial_train = aerial_train[p]
 
-            for batch_i in range(0, num_train, BATCH_SIZE):
+            for batch_i in range(0, num_train, self.BATCH_SIZE):
                 # # adjust learning rate:
                 # print(K.get_value(self.combined_gen.optimizer.lr))
                 # if rep == 10:
                 #     K.set_value(self.combined_gen.optimizer.lr, 0.0002)
 
                 # get batch:
-                imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
-                imgs_targ = aerial_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_cond = map_train[batch_i:batch_i + self.BATCH_SIZE]
+                imgs_targ = aerial_train[batch_i:batch_i + self.BATCH_SIZE]
 
                 imgs_gen = self.generator.predict(imgs_cond)
                 real_features = self.vgg19.predict(imgs_targ)
@@ -485,7 +492,8 @@ class ESRGAN():
                 print_string += "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
                 print_string += "[G loss: {:05.2f},\t "
                 print_string += "(adv.: {:04.2f} ({:04.2f}), perc.: {:05.2f} ({:04.2f}), l1: {:04.2f} ({:04.2f}))]"
-                print(print_string.format(epoch + 1, EPOCHS, int(batch_i / BATCH_SIZE), int(num_train / BATCH_SIZE),
+                print(print_string.format(epoch + 1, self.EPOCHS,
+                                          int(batch_i / self.BATCH_SIZE), int(num_train / self.BATCH_SIZE),
                                           d_loss[0], 100 * d_loss[1], g_loss[0],
                                           g_loss[1], g_loss[1] * self.factor_adversarial,
                                           g_loss[2], g_loss[2] * self.factor_perceptual,
@@ -592,6 +600,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--path_addition', type=str, default='', required=True,
                         help='Additional naming of the output and model directory')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train')
+    parser.add_argument('--batch_size', type=int, default=10, help='Size of the training batches')
+    parser.add_argument('--imgs_per_split', type=int, default=2, help='Number of sub-images taken from one Sen12 image')
+    parser.add_argument('--img_size', type=int, default=64, help='Size of input and output images')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
     parser.add_argument('--f_perc', type=float, default=1, help='Perceptual loss weighting factor')
@@ -601,7 +613,12 @@ def parse_arguments():
     parser.add_argument('--data_config', nargs='+', default=0, help='Controls how the Sen12 data is loaded')
 
     args = parser.parse_args()
+
     print('[Parser] - Additional naming of the output and model directory: {}'.format(args.path_addition))
+    print('[Parser] - Number of epochs to train: {}'.format(args.epochs))
+    print('[Parser] - Size of the training batches: {}'.format(args.batch_size))
+    print('[Parser] - Number of sub-images taken from one Sen12 image: {}'.format(args.imgs_per_split))
+    print('[Parser] - Size of input and output images: {}'.format(args.img_size))
     print('[Parser] - Discriminator learning rate : {}'.format(args.lr_d))
     print('[Parser] - Generator learning rate: {}'.format(args.lr_g))
     print('[Parser] - Perceptual loss weighting factor: {}'.format(args.f_perc))
