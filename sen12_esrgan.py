@@ -381,10 +381,6 @@ class ESRGAN():
             self.update_learning_rates(epoch)
 
             for batch_i in range(0, num_train, self.BATCH_SIZE):
-                # TODO: adjust learning rate:
-                # print(K.get_value(self.combined_gen.optimizer.lr))
-                # if rep == 10:
-                #     K.set_value(self.combined_gen.optimizer.lr, 0.0002)
 
                 # get batch:
                 imgs_cond = dataset_opt_train[batch_i:batch_i + self.BATCH_SIZE]
