@@ -308,7 +308,7 @@ class ESRGAN():
         # return Model(vgg_inp, vgg.layers[20].output, name='VGG19')
 
     def train_sen12(self):
-        self.name_string = 'aerial_' + self.name_string
+        self.name_string = 'sen12_' + self.name_string
 
         os.mkdir(GENERATED_DATA_LOCATION + self.name_string)
 
