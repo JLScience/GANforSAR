@@ -614,4 +614,4 @@ def parse_arguments():
 if __name__ == '__main__':
     arguments = parse_arguments()
     esrgan = ESRGAN(arguments)
-    esrgan.train_aerial()
+    esrgan.train_sen12()
