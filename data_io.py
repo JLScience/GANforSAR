@@ -17,6 +17,7 @@ DATASET_WINTER_SIZE = 66782
 
 # - - - - - Functions for Sen1-2 dataset - - - - -
 
+
 def create_dataset_sen12(is_sar, dataset_name):
     # Set Variables:
     image_shape = 256

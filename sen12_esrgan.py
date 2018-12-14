@@ -20,7 +20,7 @@ import augmentation
 
 # TRAINING VARIABLES
 EPOCHS = 50
-BATCH_SIZE = 10
+BATCH_SIZE = 20
 IMAGES_PER_SPLIT = 2
 SAMPLE_INTERVAL = 20
 GENERATOR_EVOLUTION_DATA = []
@@ -36,12 +36,24 @@ MODEL_WEIGHTS_PATH = 'models/esrgan/'
 class ESRGAN():
 
     def __init__(self, args):
-        self.use_relativistic_loss = args.rel
+        # name addition of directory:
         self.name_string = args.path_addition
-        self.img_rows = 128
-        self.img_cols = 128
+
+        # specify Sen12 data usage:
+        if len(args.data_config) > 1:
+            self.data_configuration = [int(a) for a in args.data_config]
+        else:
+            try:
+                self.data_configuration = int(args.data_config[0])
+            except ValueError:
+                self.data_configuration = float(args.data_config[0])
+
+        # network settings:
+        self.use_relativistic_loss = args.rel
+        self.img_rows = 64
+        self.img_cols = 64
         self.img_channels_condition = 3
-        self.img_channels_target = 3
+        self.img_channels_target = 1
         self.img_shape_condition = (self.img_rows, self.img_cols, self.img_channels_condition)
         self.img_shape_target = (self.img_rows, self.img_cols, self.img_channels_target)
 
@@ -89,7 +101,6 @@ class ESRGAN():
             img_fake = self.generator(img_opt)
             fake_features = self.vgg19(img_fake)
             validity = self.discriminator(img_fake)
-            # self.combined = Model(inputs=[img_opt, img_sar], outputs=[validity, fake_features])           # TODO
             self.combined = Model(inputs=[img_opt], outputs=[validity, fake_features, img_fake])
             # self.combined.compile(optimizer=self.opt_g, loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1])
             self.combined.compile(optimizer=self.opt_g,
@@ -296,6 +307,96 @@ class ESRGAN():
         # # return only the required part of the Model:
         # return Model(vgg_inp, vgg.layers[20].output, name='VGG19')
 
+    def train_sen12(self):
+        self.name_string = 'aerial_' + self.name_string
+
+        os.mkdir(GENERATED_DATA_LOCATION + self.name_string)
+
+        print('--- Load datasets ...')
+        dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
+            portion_mode=self.data_configuration, split_mode='same', split_ratio=0.8)
+
+        # cut images (from 256x256 to 64x64):
+        print('--- divide images ...')
+        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        print('sar_test done')
+        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        print('opt_test done')
+        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        print('sar_train done')
+        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        print('opt_train done')
+
+        # normalize datasets:
+        print('--- normalize datasets ...')
+        dataset_sar_test = np.array(dataset_sar_test / 127.5 - 1, dtype=np.float32)
+        print('sar_test done')
+        dataset_opt_test = np.array(dataset_opt_test / 127.5 - 1, dtype=np.float32)
+        print('opt_test done')
+        dataset_sar_train = np.array(dataset_sar_train / 127.5 - 1, dtype=np.float32)
+        print('sar_train done')
+        dataset_opt_train = np.array(dataset_opt_train / 127.5 - 1, dtype=np.float32)
+        print('opt_train done')
+
+        num_train = dataset_opt_train.shape[0]
+        print('number of training samples: {}'.format(num_train))
+        num_test = dataset_opt_test.shape[0]
+        print('number of test samples: {}'.format(num_test))
+
+        dummy = np.zeros(self.discriminator_output_shape)
+
+        rep = 0
+        for epoch in range(EPOCHS):
+
+            # shuffle datasets:
+            p = np.random.permutation(num_train)
+            dataset_opt_train = dataset_opt_train[p]
+            dataset_sar_train = dataset_sar_train[p]
+
+            for batch_i in range(0, num_train, BATCH_SIZE):
+                # TODO: adjust learning rate:
+                # print(K.get_value(self.combined_gen.optimizer.lr))
+                # if rep == 10:
+                #     K.set_value(self.combined_gen.optimizer.lr, 0.0002)
+
+                # get batch:
+                imgs_cond = dataset_opt_train[batch_i:batch_i + BATCH_SIZE]
+                imgs_targ = dataset_sar_train[batch_i:batch_i + BATCH_SIZE]
+
+                imgs_gen = self.generator.predict(imgs_cond)
+                real_features = self.vgg19.predict(imgs_targ)
+
+                num_samples = imgs_targ.shape[0]
+
+                # train discriminator:
+                d_loss = self.combined_disc.train_on_batch(x=[imgs_cond, imgs_targ],
+                                                           y=[dummy[:num_samples]])
+                d_loss = [d_loss[0], d_loss[2]]
+
+                # train generator:
+                g_loss = self.combined_gen.train_on_batch(x=[imgs_cond, imgs_targ],
+                                                          y=[dummy[:num_samples], real_features, imgs_targ])
+
+                # print to stdout:
+                print_string = "[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
+                print_string += "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
+                print_string += "[G loss: {:05.2f},\t "
+                print_string += "(adv.: {:04.2f} ({:04.2f}), perc.: {:05.2f} ({:04.2f}), l1: {:04.2f} ({:04.2f}))]"
+                print(print_string.format(epoch + 1, EPOCHS, int(batch_i / BATCH_SIZE), int(num_train / BATCH_SIZE),
+                                          d_loss[0], 100 * d_loss[1], g_loss[0],
+                                          g_loss[1], g_loss[1] * self.factor_adversarial,
+                                          g_loss[2], g_loss[2] * self.factor_perceptual,
+                                          g_loss[3], g_loss[3] * self.factor_l1))
+
+                if rep % SAMPLE_INTERVAL == 0:
+                    i = np.random.randint(low=0, high=num_test, size=3)
+                    img_batch = dataset_sar_test[i], dataset_opt_test[i]
+                    self.sample_images(epoch, rep, img_batch)
+                    img_batch = dataset_sar_test[GENERATOR_EVOLUTION_INDIZES], dataset_opt_test[GENERATOR_EVOLUTION_INDIZES]
+                    self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
+                rep += 1
+            self.save_generator(self.name_string)
+
     def train_aerial(self):
         self.name_string = 'aerial_' + self.name_string
 
@@ -348,6 +449,11 @@ class ESRGAN():
             aerial_train = aerial_train[p]
 
             for batch_i in range(0, num_train, BATCH_SIZE):
+                # # adjust learning rate:
+                # print(K.get_value(self.combined_gen.optimizer.lr))
+                # if rep == 10:
+                #     K.set_value(self.combined_gen.optimizer.lr, 0.0002)
+
                 # get batch:
                 imgs_cond = map_train[batch_i:batch_i + BATCH_SIZE]
                 imgs_targ = aerial_train[batch_i:batch_i + BATCH_SIZE]
@@ -482,7 +588,7 @@ class ESRGAN():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path_addition', type=str, default='', required=True,
+    parser.add_argument('--path_addition', type=str, default='', required=False,                # TODO
                         help='Additional naming of the output and model directory')
     parser.add_argument('--lr_d', type=float, default=0.0001, help='Discriminator learning rate')
     parser.add_argument('--lr_g', type=float, default=0.0001, help='Generator learning rate')
@@ -490,6 +596,7 @@ def parse_arguments():
     parser.add_argument('--f_adv', type=float, default=0.005, help='Adversarial loss weighting factor')
     parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
     parser.add_argument('--rel', type=bool, default=True, help='Switch to control usage of relativistic discriminator')
+    parser.add_argument('--data_config', nargs='+', default=0, help='Controls how the Sen12 data is loaded')
 
     args = parser.parse_args()
     print('[Parser] - Additional naming of the output and model directory: {}'.format(args.path_addition))
@@ -499,6 +606,7 @@ def parse_arguments():
     print('[Parser] - Adversarial loss weighting factor: {}'.format(args.f_adv))
     print('[Parser] - L1 loss weighting factor: {}'.format(args.f_l1))
     print('[Parser] - Use relativistic discriminator: {}'.format(args.rel))
+    print('[Parser] - Load Sen12 data as follows: {}'.format(args.data_config))
 
     return args
 

@@ -238,12 +238,31 @@
 # print(my_lr_d)
 # print(args)
 
-import numpy as np
+# import numpy as np
+# z = np.zeros((10, 8, 8, 1))
+# mz = np.mean(z, axis=0)
+# print(mz.shape)
+# zeta = np.zeros((10, 1))
+# mzeta = np.mean(zeta, axis=0)
+# print(mzeta.shape)
 
-z = np.zeros((10, 8, 8, 1))
-mz = np.mean(z, axis=0)
-print(mz.shape)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--x', nargs='+')
+args = parser.parse_args()
+x = args.x
+if len(x) > 1:
+    print('is list')
+    y = [int(a) for a in args.x]
+    print(type(y[0]))
+else:
+    try:
+        x = int(x[0])
+        print('was int')
+    except ValueError:
+        x = float(x[0])
+        print('was float')
+    print(x)
 
-zeta = np.zeros((10, 1))
-mzeta = np.mean(zeta, axis=0)
-print(mzeta.shape)
+
+
