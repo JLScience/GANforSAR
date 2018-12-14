@@ -310,6 +310,23 @@ class ESRGAN():
         # # return only the required part of the Model:
         # return Model(vgg_inp, vgg.layers[20].output, name='VGG19')
 
+    def update_learning_rates(self, epoch):
+        if epoch == int(self.EPOCHS / 2):
+            K.set_value(self.combined_gen.optimizer.lr, self.lr_g / 2)
+            K.set_value(self.combined_disc.optimizer.lr, self.lr_d / 2)
+            print('- - - ---------------------- - - -')
+            print('- - - Changed lr_g to {} - - -'.format(self.lr_g / 2))
+            print('- - - Changed lr_d to {} - - -'.format(self.lr_d / 2))
+            print('- - - ---------------------- - - -')
+
+        if epoch == int(3 * self.EPOCHS / 4):
+            K.set_value(self.combined_gen.optimizer.lr, self.lr_g / 4)
+            K.set_value(self.combined_disc.optimizer.lr, self.lr_d / 4)
+            print('- - - ---------------------- - - -')
+            print('- - - Changed lr_g to {} - - -'.format(self.lr_g / 4))
+            print('- - - Changed lr_d to {} - - -'.format(self.lr_d / 4))
+            print('- - - ---------------------- - - -')
+
     def train_sen12(self):
         self.name_string = 'sen12_' + self.name_string
 
@@ -360,6 +377,8 @@ class ESRGAN():
             p = np.random.permutation(num_train)
             dataset_opt_train = dataset_opt_train[p]
             dataset_sar_train = dataset_sar_train[p]
+
+            self.update_learning_rates(epoch)
 
             for batch_i in range(0, num_train, self.BATCH_SIZE):
                 # TODO: adjust learning rate:
