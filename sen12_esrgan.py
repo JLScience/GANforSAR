@@ -67,11 +67,15 @@ class ESRGAN():
 
         self.generator = self.make_generator()
         # self.generator.summary()
+        if args.pretrained_name != '':
+            self.load_generator(args.pretrained_name)
+            print('Successfully loaded generator weights.')
 
-        if not self.use_relativistic_loss:
-            self.discriminator = self.make_discriminator(relativistic=False)
-        else:
-            self.discriminator = self.make_discriminator(relativistic=True)
+        # if not self.use_relativistic_loss:
+        #     self.discriminator = self.make_discriminator(relativistic=False)
+        # else:
+
+        self.discriminator = self.make_discriminator(relativistic=True)
         # self.discriminator.summary()
         self.discriminator_output_shape = list(self.discriminator.output_shape)
         self.discriminator_output_shape[0] = self.BATCH_SIZE
@@ -92,64 +96,65 @@ class ESRGAN():
         self.opt_g = Adam(self.lr_g)
         self.opt_d = Adam(self.lr_d)
 
-        # without relativistic average discriminator:
-        if not self.use_relativistic_loss:
-            # compile discriminator:
-            self.discriminator.compile(optimizer=self.opt_d, loss='mse', metrics=['accuracy'])
+        # # without relativistic average discriminator:
+        # if not self.use_relativistic_loss:
+        #     # compile discriminator:
+        #     self.discriminator.compile(optimizer=self.opt_d, loss='mse', metrics=['accuracy'])
+        #
+        #     # create and compile combined model:
+        #     self.discriminator.trainable = False
+        #     img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
+        #     # img_sar = Input(shape=self.img_shape_target)
+        #     img_fake = self.generator(img_opt)
+        #     fake_features = self.vgg19(img_fake)
+        #     validity = self.discriminator(img_fake)
+        #     self.combined = Model(inputs=[img_opt], outputs=[validity, fake_features, img_fake])
+        #     # self.combined.compile(optimizer=self.opt_g, loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1])
+        #     self.combined.compile(optimizer=self.opt_g,
+        #                           loss=['binary_crossentropy', 'mse', 'mae'],
+        #                           loss_weights=[self.factor_adversarial, self.factor_perceptual, self.factor_l1])
+        #     self.combined.summary()
+        # # with relativistic average discriminator:
+        # else:
 
-            # create and compile combined model:
-            self.discriminator.trainable = False
-            img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
-            # img_sar = Input(shape=self.img_shape_target)
-            img_fake = self.generator(img_opt)
-            fake_features = self.vgg19(img_fake)
-            validity = self.discriminator(img_fake)
-            self.combined = Model(inputs=[img_opt], outputs=[validity, fake_features, img_fake])
-            # self.combined.compile(optimizer=self.opt_g, loss=['binary_crossentropy', 'mse'], loss_weights=[1e-3, 1])
-            self.combined.compile(optimizer=self.opt_g,
-                                  loss=['binary_crossentropy', 'mse', 'mae'],
-                                  loss_weights=[self.factor_adversarial, self.factor_perceptual, self.factor_l1])
-            self.combined.summary()
-        # with relativistic average discriminator:
-        else:
-            img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
-            img_sar = Input(shape=self.img_shape_target, name='Inp_target')
-            img_fake = self.generator(img_opt)
-            disc_real = self.discriminator(img_sar)
-            disc_fake = self.discriminator(img_fake)
-            fake_features = self.vgg19(img_fake)
+        img_opt = Input(shape=self.img_shape_condition, name='Inp_condition')
+        img_sar = Input(shape=self.img_shape_target, name='Inp_target')
+        img_fake = self.generator(img_opt)
+        disc_real = self.discriminator(img_sar)
+        disc_fake = self.discriminator(img_fake)
+        fake_features = self.vgg19(img_fake)
 
-            def rel_avg_disc_loss(y_true, y_pred):
-                eps = 1e-6
-                return -(K.mean(K.log(eps + K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2])
-                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2]))
+        def rel_avg_disc_loss(y_true, y_pred):
+            eps = 1e-6
+            return -(K.mean(K.log(eps + K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2])
+                     + K.mean(K.log(eps + 1 - K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2]))
 
-            def rel_avg_gen_loss(y_true, y_pred):
-                eps = 1e-6
-                return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2])
-                         + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2]))
+        def rel_avg_gen_loss(y_true, y_pred):
+            eps = 1e-6
+            return -(K.mean(K.log(eps + K.sigmoid(disc_fake - K.mean(disc_real, axis=[0, 1, 2]))), axis=[0, 1, 2])
+                     + K.mean(K.log(eps + 1 - K.sigmoid(disc_real - K.mean(disc_fake, axis=[0, 1, 2]))), axis=[0, 1, 2]))
 
-            # Discriminator:
-            self.combined_disc = Model(inputs=[img_opt, img_sar],
-                                       outputs=[disc_real, disc_fake],
-                                       name='Discriminator_Train')
-            self.generator.trainable = False
-            self.combined_disc.compile(optimizer=self.opt_d,
-                                       loss=[rel_avg_disc_loss, None],
-                                       metrics=['accuracy'])
-            self.combined_disc.summary()
+        # Discriminator:
+        self.combined_disc = Model(inputs=[img_opt, img_sar],
+                                   outputs=[disc_real, disc_fake],
+                                   name='Discriminator_Train')
+        self.generator.trainable = False
+        self.combined_disc.compile(optimizer=self.opt_d,
+                                   loss=[rel_avg_disc_loss, None],
+                                   metrics=['accuracy'])
+        self.combined_disc.summary()
 
-            # Generator:
-            self.combined_gen = Model(inputs=[img_opt, img_sar],
-                                      outputs=[disc_real, disc_fake, fake_features, img_fake],
-                                      name='Generator_Train')
-            self.generator.trainable = True
-            self.discriminator.trainable = False
-            self.combined_gen.compile(optimizer=self.opt_g,
-                                      loss=[rel_avg_gen_loss, None, 'mse', 'mae'],
-                                      loss_weights=[self.factor_adversarial, self.factor_adversarial,
-                                                    self.factor_perceptual, self.factor_l1])
-            self.combined_gen.summary()
+        # Generator:
+        self.combined_gen = Model(inputs=[img_opt, img_sar],
+                                  outputs=[disc_real, disc_fake, fake_features, img_fake],
+                                  name='Generator_Train')
+        self.generator.trainable = True
+        self.discriminator.trainable = False
+        self.combined_gen.compile(optimizer=self.opt_g,
+                                  loss=[rel_avg_gen_loss, None, 'mse', 'mae'],
+                                  loss_weights=[self.factor_adversarial, self.factor_adversarial,
+                                                self.factor_perceptual, self.factor_l1])
+        self.combined_gen.summary()
 
     def make_generator(self):
 
@@ -334,7 +339,7 @@ class ESRGAN():
 
         print('--- Load datasets ...')
         dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=self.data_configuration, split_mode='same', split_ratio=0.8)
+            portion_mode=self.data_configuration, split_mode='same', split_ratio=0.5)
 
         # cut images (from 256x256 to 64x64):
         f = int(256 / self.size)
@@ -626,6 +631,8 @@ def parse_arguments():
     parser.add_argument('--f_l1', type=float, default=0.01, help='L1 loss weighting factor')
     parser.add_argument('--rel', type=bool, default=True, help='Switch to control usage of relativistic discriminator')
     parser.add_argument('--data_config', nargs='+', default=0, help='Controls how the Sen12 data is loaded')
+    parser.add_argument('--pretrained_name', type=str, default='',
+                        help='Specify which pretrained generator parameters to load; if empty, no pretraining is used')
 
     args = parser.parse_args()
 
@@ -641,6 +648,10 @@ def parse_arguments():
     print('[Parser] - L1 loss weighting factor: {}'.format(args.f_l1))
     print('[Parser] - Use relativistic discriminator: {}'.format(args.rel))
     print('[Parser] - Load Sen12 data as follows: {}'.format(args.data_config))
+    if args.pretrained_name == '':
+        print('[Parser] - No usage of pre-training!')
+    else:
+        print('[Parser] - Use pre-trained weights: generator_weights_{}.hdf5'.format(args.pretrained_name))
 
     return args
 
