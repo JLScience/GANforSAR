@@ -1,4 +1,6 @@
 #
+import os
+import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
@@ -11,7 +13,7 @@ import augmentation
 import my_resnet50
 
 MODEL_WEIGHTS_PATH = 'models/classifier/'
-EPOCHS = 20
+EPOCHS = 50
 BATCH_SIZE = 50
 
 
@@ -19,7 +21,7 @@ class Custom_Classifer():
 
     def __init__(self, network_type='vgg19'):
         self.network_type = network_type
-        self.num_classes = 10
+        self.num_classes = 8                                                                                    # !
         self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
                             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
         self.class_names_ger = ['EinjKultur', 'Wald', 'KrautKultur', 'Straße', 'Industrie',
@@ -59,21 +61,21 @@ class Custom_Classifer():
         outp = Dense(512, activation='relu')(outp)
         outp = Dropout(0.3)(outp)
         outp = Dense(512, activation='relu')(outp)
-        outp = Dense(10, activation='softmax')(outp)
+        outp = Dense(self.num_classes, activation='softmax')(outp)
         return Model(inp, outp)
 
     def build_model_resnet50(self):
-        resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
-        resnet50_model.trainable = False
-        # resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
+        # resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
+        # resnet50_model.trainable = False
+        resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
         inp = Input(shape=(64, 64, 3))
         outp = resnet50_model(inp)
         outp = Flatten()(outp)
-        outp = Dropout(0.4)(outp)
+        outp = Dropout(0.5)(outp)
         outp = Dense(512, activation='relu')(outp)
         # outp = Dropout(0.3)(outp)
         # outp = Dense(512, activation='relu')(outp)
-        outp = Dense(10, activation='softmax')(outp)
+        outp = Dense(self.num_classes, activation='softmax')(outp)
         return Model(inp, outp)
 
     def train_optical(self):
@@ -139,8 +141,23 @@ class Custom_Classifer():
         self.classifier.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
         # load dataset
+        # path = 'data/EuroSAT/dataset_translated_sen12_128x128_pre_balanced.hdf5'
+        # x_train_esr, y_train_esr, x_val_esr, y_val_esr, x_test_esr, y_test_esr = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
         path = 'data/EuroSAT/dataset_translated_real_5.hdf5'
+        # x_train_p2p, y_train_p2p, x_val_p2p, y_val_p2p, x_test_p2p, y_test_p2p = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
+
         x_train, y_train, x_val, y_val, x_test, y_test = data_io.divide_dataset_eurosat(0.1, 0.1, path=path)
+
+        # x_train = np.concatenate((x_train_esr, x_train_p2p))
+        # y_train = np.concatenate((y_train_esr, y_train_p2p))
+        # x_val = np.concatenate((x_val_esr, x_val_p2p))
+        # y_val = np.concatenate((y_val_esr, y_val_p2p))
+        # x_test = np.concatenate((x_test_esr, x_test_p2p))
+        # y_test = np.concatenate((y_test_esr, y_test_p2p))
+
+        p = np.random.permutation(x_train.shape[0])
+        x_train = x_train[p]
+        y_train = y_train[p]
 
         # preprocess data
         x_train = np.array(x_train / 127.5 - 1, dtype=np.float32)
@@ -156,29 +173,102 @@ class Custom_Classifer():
         # y_test = keras.utils.to_categorical(y_test, self.num_classes)
 
         # train classifier
-        self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=(x_val, y_val),
-                            verbose=2)
-        loss, acc = self.classifier.evaluate(x_test, keras.utils.to_categorical(y_test, self.num_classes))
-        print(loss, acc)
+        now = str(datetime.datetime.now())
+        os.mkdir(MODEL_WEIGHTS_PATH + now + '/')
+        checkpoint_path = MODEL_WEIGHTS_PATH + now + '/' + self.network_type + '_sar_' + \
+                          'weights_E{epoch:02d}_ACC_{val_acc:.2f}.hdf5'
+        checkpoint = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                     monitor='val_acc',
+                                                     verbose=1,
+                                                     save_best_only=True,
+                                                     save_weights_only=True)
+        self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS,
+                            validation_data=(x_val, y_val), verbose=2, callbacks=[checkpoint])
 
-        # generate confusion matrix
-        conf = np.zeros((self.num_classes, self.num_classes))
-        for i in range(self.num_classes):
-            x = x_test[y_test == i]
-            y_pred = np.argmax(self.classifier.predict(x), axis=1)
-            for j in range(self.num_classes):
-                conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
-        print(np.round(conf, 2))
-        plt.imshow(conf)
-        plt.colorbar()
-        plt.xlabel('correct class')
-        plt.ylabel('predicted class')
-        plt.xticks(np.arange(10), self.class_names, rotation=90)
-        plt.yticks(np.arange(10), self.class_names)
-        plt.show()
+        # self.load_trained_model('resnet50_sar_weights_E14_ACC_0.65')
+        #
+        # loss, acc = self.classifier.evaluate(x_test, keras.utils.to_categorical(y_test, self.num_classes))
+        # print(loss, acc)
+        #
+        # # generate confusion matrix
+        # conf = np.zeros((self.num_classes, self.num_classes))
+        # for i in range(self.num_classes):
+        #     x = x_test[y_test == i]
+        #     y_pred = np.argmax(self.classifier.predict(x), axis=1)
+        #     for j in range(self.num_classes):
+        #         conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
+        # print(np.round(conf, 2))
+        # plt.imshow(conf)
+        # plt.colorbar()
+        # plt.xlabel('correct class')
+        # plt.ylabel('predicted class')
+        # plt.xticks(np.arange(10), self.class_names, rotation=90)
+        # plt.yticks(np.arange(10), self.class_names)
+        # plt.show()
 
+    def train_sar_partial(self):
+        opt = Adam()
+        self.classifier.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
-        # TODO: save weights (in between)
+        # names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
+        #          'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
+
+        used_classes = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Industrial', 'Pasture',
+                        'PermanentCrop', 'Residential', 'SeaLake']
+
+        path = 'data/EuroSAT/dataset_translated_sen12_128x128_pre_balanced.hdf5'
+        # path = 'data/EuroSAT/dataset_translated_real_5.hdf5'
+        data = []
+        for idx, used_class in enumerate(used_classes):
+            data.append(data_io.load_dataset_eurosat(path=path, mode=used_class))
+
+        img_shape = (data[0].shape[1], data[0].shape[2], data[0].shape[3])
+
+        x_train = np.zeros((0,) + img_shape, dtype=np.uint8)
+        y_train = np.zeros(0, dtype=np.uint8)
+        x_val = np.zeros((0,) + img_shape, dtype=np.uint8)
+        y_val = np.zeros(0, dtype=np.uint8)
+        x_test = np.zeros((0,) + img_shape, dtype=np.uint8)
+        y_test = np.zeros(0, dtype=np.uint8)
+        for i, d in enumerate(data):
+            num_val = int(d.shape[0] * 0.1)
+            num_test = int(d.shape[0] * 0.1)
+            num_train = d.shape[0] - num_val - num_test
+            x_train = np.append(x_train, d[0:num_train, ...], axis=0)
+            y_train = np.append(y_train, i * np.ones(num_train), axis=0)
+            x_val = np.append(x_val, d[num_train:num_train + num_val, ...], axis=0)
+            y_val = np.append(y_val, i * np.ones(num_val), axis=0)
+            x_test = np.append(x_test, d[num_train + num_val:, ...], axis=0)
+            y_test = np.append(y_test, i * np.ones(num_test), axis=0)
+
+        p = np.random.permutation(x_train.shape[0])
+        x_train = x_train[p]
+        y_train = y_train[p]
+
+        # preprocess data
+        x_train = np.array(x_train / 127.5 - 1, dtype=np.float32)
+        x_val = np.array(x_val / 127.5 - 1, dtype=np.float32)
+        x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
+
+        x_train = np.concatenate((x_train, x_train, x_train), axis=-1)
+        x_val = np.concatenate((x_val, x_val, x_val), axis=-1)
+        x_test = np.concatenate((x_test, x_test, x_test), axis=-1)
+
+        y_train = keras.utils.to_categorical(y_train, self.num_classes)
+        y_val = keras.utils.to_categorical(y_val, self.num_classes)
+
+        # train classifier
+        now = str(datetime.datetime.now())
+        os.mkdir(MODEL_WEIGHTS_PATH + now + '/')
+        checkpoint_path = MODEL_WEIGHTS_PATH + now + '/' + self.network_type + '_sar_' + \
+                          'weights_E{epoch:02d}_ACC_{val_acc:.2f}.hdf5'
+        checkpoint = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                     monitor='val_acc',
+                                                     verbose=1,
+                                                     save_best_only=True,
+                                                     save_weights_only=True)
+        self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS,
+                            validation_data=(x_val, y_val), verbose=2, callbacks=[checkpoint])
 
     def save_trained_model(self, name):
         self.classifier.save_weights(MODEL_WEIGHTS_PATH + name + '.hdf5')
@@ -191,8 +281,9 @@ class Custom_Classifer():
 
 
 if __name__ == '__main__':
-    my_vgg = Custom_Classifer('resnet50')
-    # my_vgg.load_trained_model('vgg_opt')
-    # my_vgg.train_sar()
-    my_vgg.train_optical()
-    # my_vgg.inspect_sar_data(8, ['real_3', 'real_5'])
+    classifier = Custom_Classifer('resnet50')
+    # classifier.load_trained_model('vgg_opt')
+    # classifier.train_sar()
+    classifier.train_sar_partial()
+    # classifier.train_optical()
+    # classifier.inspect_sar_data(3, ['real_5', 'sen12_128x128_pre_balanced'])
