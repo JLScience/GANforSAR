@@ -1,6 +1,7 @@
 # EDITS:
 # - CHANGED REQURIED INPUT SHAPE TO 64 FROM 197
 # - CHANGED AVERAGE POOLING AT THE NETWORKS END
+# - CHANGED ADDED DROPOUT
 
 # -*- coding: utf-8 -*-
 """ResNet50 model for Keras.
@@ -27,6 +28,7 @@ from keras.layers import AveragePooling2D
 from keras.layers import GlobalAveragePooling2D
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import BatchNormalization
+from keras.layers import Dropout
 from keras.models import Model
 from keras import backend as K
 from keras.engine.topology import get_source_inputs
@@ -64,10 +66,14 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
     x = Activation('relu')(x)
 
+    x = Dropout(0.3)(x)
+
     x = Conv2D(filters2, kernel_size,
                padding='same', name=conv_name_base + '2b')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
     x = Activation('relu')(x)
+
+    x = Dropout(0.3)(x)
 
     x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
@@ -106,10 +112,14 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
     x = Activation('relu')(x)
 
+    x = Dropout(0.3)(x)
+
     x = Conv2D(filters2, kernel_size, padding='same',
                name=conv_name_base + '2b')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
     x = Activation('relu')(x)
+
+    x = Dropout(0.3)(x)
 
     x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)

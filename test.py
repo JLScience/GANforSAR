@@ -246,23 +246,59 @@
 # mzeta = np.mean(zeta, axis=0)
 # print(mzeta.shape)
 
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--x', nargs='+')
-args = parser.parse_args()
-x = args.x
-if len(x) > 1:
-    print('is list')
-    y = [int(a) for a in args.x]
-    print(type(y[0]))
-else:
-    try:
-        x = int(x[0])
-        print('was int')
-    except ValueError:
-        x = float(x[0])
-        print('was float')
-    print(x)
+# import argparse
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--x', nargs='+')
+# args = parser.parse_args()
+# x = args.x
+# if len(x) > 1:
+#     print('is list')
+#     y = [int(a) for a in args.x]
+#     print(type(y[0]))
+# else:
+#     try:
+#         x = int(x[0])
+#         print('was int')
+#     except ValueError:
+#         x = float(x[0])
+#         print('was float')
+#     print(x)
 
-
+# import numpy as np
+# import keras
+# from keras.models import Sequential
+# from keras.layers import Dense
+#
+# # generate training and test data:
+# modulo = 10
+# num_samples = 50000
+# nums_up_to = 30                                                                   # numbers in range [0, nums_up_to-1]
+# x_train = np.random.randint(low=0, high=nums_up_to, size=num_samples)
+# y_train = np.mod(x_train, modulo)
+# y_train = keras.utils.to_categorical(y_train, num_classes=modulo)                 # transform output to one-hot-encoding
+#
+# x_test = np.random.randint(low=nums_up_to, high=nums_up_to*2, size=num_samples)
+# y_test = np.mod(x_test, modulo)
+# y_test = keras.utils.to_categorical(y_test, num_classes=modulo)                   # transform output to one-hot-encoding
+#
+# # design and compile model:
+# model = Sequential()
+# model.add(Dense(100, activation='sigmoid', input_shape=(1, )))
+# model.add(Dense(100, activation='sigmoid'))
+# model.add(Dense(100, activation='sigmoid'))
+# model.add(Dense(100, activation='sigmoid'))
+# model.add(Dense(modulo, activation='sigmoid'))
+# model.summary()
+# model.compile(optimizer='Adam', loss='mse', metrics=['accuracy'])               # use mean squared error loss
+#
+# # train and evaluate model:
+# model.fit(x_train, y_train, epochs=50, verbose=2)
+# print('')
+# print('Test the model ...')
+# print('Test with same numbers as in training: ')
+# hist = model.evaluate(x_train, y_train, verbose=2)
+# print('Achieved {}% accuracy!'.format(hist[1]*100))
+# print('Test with unknown numbers: ')
+# hist = model.evaluate(x_test, y_test, verbose=2)
+# print('Achieved {}% accuracy!'.format(hist[1]*100))
 
