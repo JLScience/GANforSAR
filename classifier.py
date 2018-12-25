@@ -19,9 +19,9 @@ BATCH_SIZE = 50
 
 class Custom_Classifer():
 
-    def __init__(self, network_type='vgg19'):
+    def __init__(self, network_type):
         self.network_type = network_type
-        self.num_classes = 8                                                                                    # !
+        self.num_classes = 10
         self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
                             'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
         self.class_names_ger = ['EinjKultur', 'Wald', 'KrautKultur', 'Straße', 'Industrie',
@@ -41,7 +41,7 @@ class Custom_Classifer():
         for name in dataset_names:
             data_sar.append(data_io.load_dataset_eurosat('data/EuroSAT/dataset_translated_' + name + '.hdf5', mode=self.class_names[class_idx]))
         num_image_pairs = 5
-        for idx in range(10):
+        for idx in range(5):
             fig, axs = plt.subplots(num_image_pairs, 1+len(data_sar), figsize=(3+2*len(data_sar), 2*num_image_pairs-2))
             for i in range(num_image_pairs):
                 axs[i, 0].imshow(data_opt[idx*num_image_pairs+i, ...])
@@ -164,6 +164,7 @@ class Custom_Classifer():
         x_val = np.array(x_val / 127.5 - 1, dtype=np.float32)
         x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
 
+        # one channel input to three channel input:
         x_train = np.concatenate((x_train, x_train, x_train), axis=-1)
         x_val = np.concatenate((x_val, x_val, x_val), axis=-1)
         x_test = np.concatenate((x_test, x_test, x_test), axis=-1)
@@ -216,30 +217,34 @@ class Custom_Classifer():
         used_classes = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Industrial', 'Pasture',
                         'PermanentCrop', 'Residential', 'SeaLake']
 
-        path = 'data/EuroSAT/dataset_translated_sen12_128x128_pre_balanced.hdf5'
-        # path = 'data/EuroSAT/dataset_translated_real_5.hdf5'
-        data = []
-        for idx, used_class in enumerate(used_classes):
-            data.append(data_io.load_dataset_eurosat(path=path, mode=used_class))
+        paths = []
+        paths.append('data/EuroSAT/dataset_translated_sen12_128x128_pre_balanced.hdf5')
+        paths.append('data/EuroSAT/dataset_translated_real_5.hdf5')
 
-        img_shape = (data[0].shape[1], data[0].shape[2], data[0].shape[3])
+        for path_idx, path in enumerate(paths):
+            data = []
+            for idx, used_class in enumerate(used_classes):
+                data.append(data_io.load_dataset_eurosat(path=path, mode=used_class))
 
-        x_train = np.zeros((0,) + img_shape, dtype=np.uint8)
-        y_train = np.zeros(0, dtype=np.uint8)
-        x_val = np.zeros((0,) + img_shape, dtype=np.uint8)
-        y_val = np.zeros(0, dtype=np.uint8)
-        x_test = np.zeros((0,) + img_shape, dtype=np.uint8)
-        y_test = np.zeros(0, dtype=np.uint8)
-        for i, d in enumerate(data):
-            num_val = int(d.shape[0] * 0.1)
-            num_test = int(d.shape[0] * 0.1)
-            num_train = d.shape[0] - num_val - num_test
-            x_train = np.append(x_train, d[0:num_train, ...], axis=0)
-            y_train = np.append(y_train, i * np.ones(num_train), axis=0)
-            x_val = np.append(x_val, d[num_train:num_train + num_val, ...], axis=0)
-            y_val = np.append(y_val, i * np.ones(num_val), axis=0)
-            x_test = np.append(x_test, d[num_train + num_val:, ...], axis=0)
-            y_test = np.append(y_test, i * np.ones(num_test), axis=0)
+            if path_idx == 0:
+                img_shape = (data[0].shape[1], data[0].shape[2], data[0].shape[3])
+                x_train = np.zeros((0,) + img_shape, dtype=np.uint8)
+                y_train = np.zeros(0, dtype=np.uint8)
+                x_val = np.zeros((0,) + img_shape, dtype=np.uint8)
+                y_val = np.zeros(0, dtype=np.uint8)
+                x_test = np.zeros((0,) + img_shape, dtype=np.uint8)
+                y_test = np.zeros(0, dtype=np.uint8)
+
+            for i, d in enumerate(data):
+                num_val = int(d.shape[0] * 0.1)
+                num_test = int(d.shape[0] * 0.1)
+                num_train = d.shape[0] - num_val - num_test
+                x_train = np.append(x_train, d[0:num_train, ...], axis=0)
+                y_train = np.append(y_train, i * np.ones(num_train), axis=0)
+                x_val = np.append(x_val, d[num_train:num_train + num_val, ...], axis=0)
+                y_val = np.append(y_val, i * np.ones(num_val), axis=0)
+                x_test = np.append(x_test, d[num_train + num_val:, ...], axis=0)
+                y_test = np.append(y_test, i * np.ones(num_test), axis=0)
 
         p = np.random.permutation(x_train.shape[0])
         x_train = x_train[p]
@@ -250,6 +255,7 @@ class Custom_Classifer():
         x_val = np.array(x_val / 127.5 - 1, dtype=np.float32)
         x_test = np.array(x_test / 127.5 - 1, dtype=np.float32)
 
+        # one channel input to three channel input:
         x_train = np.concatenate((x_train, x_train, x_train), axis=-1)
         x_val = np.concatenate((x_val, x_val, x_val), axis=-1)
         x_test = np.concatenate((x_test, x_test, x_test), axis=-1)
@@ -257,18 +263,40 @@ class Custom_Classifer():
         y_train = keras.utils.to_categorical(y_train, self.num_classes)
         y_val = keras.utils.to_categorical(y_val, self.num_classes)
 
-        # train classifier
-        now = str(datetime.datetime.now())
-        os.mkdir(MODEL_WEIGHTS_PATH + now + '/')
-        checkpoint_path = MODEL_WEIGHTS_PATH + now + '/' + self.network_type + '_sar_' + \
-                          'weights_E{epoch:02d}_ACC_{val_acc:.2f}.hdf5'
-        checkpoint = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                     monitor='val_acc',
-                                                     verbose=1,
-                                                     save_best_only=True,
-                                                     save_weights_only=True)
-        self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS,
-                            validation_data=(x_val, y_val), verbose=2, callbacks=[checkpoint])
+        # # train classifier
+        # now = str(datetime.datetime.now())
+        # os.mkdir(MODEL_WEIGHTS_PATH + now + '/')
+        # checkpoint_path = MODEL_WEIGHTS_PATH + now + '/' + self.network_type + '_sar_' + \
+        #                   'weights_E{epoch:02d}_ACC_{val_acc:.2f}.hdf5'
+        # checkpoint = keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+        #                                              monitor='val_acc',
+        #                                              verbose=1,
+        #                                              save_best_only=True,
+        #                                              save_weights_only=True)
+        # self.classifier.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS,
+        #                     validation_data=(x_val, y_val), verbose=2, callbacks=[checkpoint])
+
+        self.load_trained_model('resnet50_sar_weights_E13_ACC_0.76')
+
+        self.generate_confusion_matrix(x_test, y_test, num_classes=8, class_labels=used_classes)
+
+    def generate_confusion_matrix(self, x_test, y_test, num_classes=0, class_labels='auto'):
+        number_of_classes = self.num_classes if num_classes == 0 else num_classes
+        labels_of_classes = self.class_names if class_labels == 'auto' else class_labels
+        conf = np.zeros((number_of_classes, number_of_classes))
+        for i in range(number_of_classes):
+            x = x_test[y_test == i]
+            y_pred = np.argmax(self.classifier.predict(x), axis=1)
+            for j in range(number_of_classes):
+                conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
+        print(np.round(conf, 2))
+        plt.imshow(conf)
+        plt.colorbar()
+        plt.xlabel('correct class')
+        plt.ylabel('predicted class')
+        plt.xticks(np.arange(number_of_classes), labels_of_classes, rotation=90)
+        plt.yticks(np.arange(number_of_classes), labels_of_classes)
+        plt.show()
 
     def save_trained_model(self, name):
         self.classifier.save_weights(MODEL_WEIGHTS_PATH + name + '.hdf5')
@@ -286,4 +314,4 @@ if __name__ == '__main__':
     # classifier.train_sar()
     classifier.train_sar_partial()
     # classifier.train_optical()
-    # classifier.inspect_sar_data(3, ['real_5', 'sen12_128x128_pre_balanced'])
+    # classifier.inspect_sar_data(5, ['real_5', 'sen12_128x128_pre_balanced'])
