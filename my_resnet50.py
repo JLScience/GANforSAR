@@ -1,7 +1,7 @@
 # EDITS:
 # - CHANGED REQURIED INPUT SHAPE TO 64 FROM 197
 # - CHANGED AVERAGE POOLING AT THE NETWORKS END
-# - CHANGED ADDED DROPOUT
+# - ADDED DROPOUT
 
 # -*- coding: utf-8 -*-
 """ResNet50 model for Keras.
@@ -66,14 +66,14 @@ def identity_block(input_tensor, kernel_size, filters, stage, block):
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
     x = Activation('relu')(x)
 
-    x = Dropout(0.3)(x)
+    x = Dropout(0.3)(x)                                                                             # changed
 
     x = Conv2D(filters2, kernel_size,
                padding='same', name=conv_name_base + '2b')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
     x = Activation('relu')(x)
 
-    x = Dropout(0.3)(x)
+    x = Dropout(0.3)(x)                                                                             # changed
 
     x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
@@ -112,14 +112,14 @@ def conv_block(input_tensor, kernel_size, filters, stage, block, strides=(2, 2))
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
     x = Activation('relu')(x)
 
-    x = Dropout(0.3)(x)
+    x = Dropout(0.3)(x)                                                                             # changed
 
     x = Conv2D(filters2, kernel_size, padding='same',
                name=conv_name_base + '2b')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
     x = Activation('relu')(x)
 
-    x = Dropout(0.3)(x)
+    x = Dropout(0.3)(x)                                                                             # changed
 
     x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
     x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
@@ -198,7 +198,7 @@ def ResNet50(include_top=True, weights='imagenet',
     # Determine proper input shape
     input_shape = _obtain_input_shape(input_shape,
                                       default_size=224,
-                                      min_size=64,
+                                      min_size=64,                                                  # changed
                                       data_format=K.image_data_format(),
                                       require_flatten=include_top,
                                       weights=weights)
@@ -241,7 +241,7 @@ def ResNet50(include_top=True, weights='imagenet',
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
     x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
 
-    # x = AveragePooling2D((7, 7), name='avg_pool')(x)              # original version
+    # x = AveragePooling2D((7, 7), name='avg_pool')(x)                                              # original version
     x = AveragePooling2D((2, 2), name='avg_pool')(x)
 
     if include_top:
