@@ -36,7 +36,7 @@ class GAN_P2P():
 
     def __init__(self):
         # location:
-        self.name_string = str(datetime.datetime.now())
+        self.name_string = str(datetime.datetime.now()) + '_'
         os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
         os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
 
@@ -142,6 +142,47 @@ class GAN_P2P():
 
         # u7 = UpSampling2D(size=2)(u6)
         # output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u7)
+
+        d1 = conv2d(d0, self.num_f_g, bn=False)
+        d2 = conv2d(d1, self.num_f_g * 2)
+        d3 = conv2d(d2, self.num_f_g * 4)
+        d4 = conv2d(d3, self.num_f_g * 8)
+        d5 = conv2d(d4, self.num_f_g * 8)
+        d6 = conv2d(d5, self.num_f_g * 8)
+        d7 = conv2d(d6, self.num_f_g * 8)
+        d8 = conv2d(d7, self.num_f_g * 8)
+
+        u1 = deconv2d(d8, d7, self.num_f_g * 8)
+        u2 = deconv2d(u1, d6, self.num_f_g * 8)
+        u3 = deconv2d(u2, d5, self.num_f_g * 8)
+        u4 = deconv2d(u3, d4, self.num_f_g * 8)
+        u5 = deconv2d(u4, d3, self.num_f_g * 4)
+        u6 = deconv2d(u5, d2, self.num_f_g * 2)
+        u7 = deconv2d(u6, d1, self.num_f_g)
+
+        u8 = UpSampling2D(size=2)(u7)
+        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u8)
+
+        return Model(d0, output_image)
+
+    def make_generator_small(self):
+        def conv2d(layer_input, filters, f_size=4, bn=True):
+            d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
+            d = LeakyReLU(alpha=0.2)(d)
+            if bn:
+                d = BatchNormalization(momentum=0.9)(d)
+            return d
+
+        def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
+            u = UpSampling2D(size=2)(layer_input)
+            u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
+            if dropout_rate:
+                u = Dropout(dropout_rate)(u)
+            u = BatchNormalization(momentum=0.9)(u)
+            u = Concatenate()([u, skip_input])
+            return u
+
+        d0 = Input(shape=self.img_shape_cond)
 
         d1 = conv2d(d0, self.num_f_g, bn=False)
         d2 = conv2d(d1, self.num_f_g * 2)
@@ -409,11 +450,12 @@ class GAN_P2P():
                                                       y=[valid[:num_samples], imgs_gen_real])
 
                 print("[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
-                      "[D loss: {:05.3f}, acc: {:05.2f}%] \t [G loss: {:05.3f}]".format(epoch + 1, EPOCHS,
-                                                                                        int(batch_i / BATCH_SIZE),
-                                                                                        int(num_train / BATCH_SIZE),
-                                                                                        d_loss[0], 100 * d_loss[1],
-                                                                                        g_loss[0]))
+                      "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
+                      "[G loss: {:05.3f}, adv: {:05.3f}, L1: {:05.3f}]".format(epoch + 1, EPOCHS,
+                                                                               int(batch_i / BATCH_SIZE),
+                                                                               int(num_train / BATCH_SIZE),
+                                                                               d_loss[0], 100 * d_loss[1],
+                                                                               g_loss[0], g_loss[1], g_loss[2]))
 
                 if rep % SAMPLE_INTERVAL == 0:
                     i = np.random.randint(low=0, high=num_test, size=3)
