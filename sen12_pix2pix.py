@@ -76,7 +76,7 @@ class GAN_P2P():
         self.opt_g = Adam(lr=lr_g, beta_1=0.5)
         self.opt_d = Adam(lr=lr_d, beta_1=0.5)
 
-        self.generator = self.make_generator()                                                    #
+        self.generator = self.make_generator_small()                                                    #
         print('--> Generator Model:')
         self.generator.summary()
 
@@ -102,7 +102,7 @@ class GAN_P2P():
         validity = self.discriminator([img_gen, img_cond])
         # build and compile model:
         self.combined = Model(inputs=[img_gen_real, img_cond], outputs=[validity, img_gen])
-        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 10], optimizer=self.opt_g)
+        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 100], optimizer=self.opt_g)
         print('--> Combined Generator Model:')
         self.combined.summary()
 
