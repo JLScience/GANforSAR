@@ -102,7 +102,7 @@ class GAN_P2P():
         validity = self.discriminator([img_gen, img_cond])
         # build and compile model:
         self.combined = Model(inputs=[img_gen_real, img_cond], outputs=[validity, img_gen])
-        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 10], optimizer=self.opt_g)
+        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 100], optimizer=self.opt_g)
         print('--> Combined Generator Model:')
         self.combined.summary()
 
@@ -190,19 +190,15 @@ class GAN_P2P():
         d4 = conv2d(d3, self.num_f_g * 8)
         d5 = conv2d(d4, self.num_f_g * 8)
         d6 = conv2d(d5, self.num_f_g * 8)
-        d7 = conv2d(d6, self.num_f_g * 8)
-        d8 = conv2d(d7, self.num_f_g * 8)
 
-        u1 = deconv2d(d8, d7, self.num_f_g * 8)
-        u2 = deconv2d(u1, d6, self.num_f_g * 8)
-        u3 = deconv2d(u2, d5, self.num_f_g * 8)
-        u4 = deconv2d(u3, d4, self.num_f_g * 8)
-        u5 = deconv2d(u4, d3, self.num_f_g * 4)
-        u6 = deconv2d(u5, d2, self.num_f_g * 2)
-        u7 = deconv2d(u6, d1, self.num_f_g)
+        u1 = deconv2d(d6, d5, self.num_f_g * 8)
+        u2 = deconv2d(u1, d4, self.num_f_g * 8)
+        u3 = deconv2d(u2, d3, self.num_f_g * 4)
+        u4 = deconv2d(u3, d2, self.num_f_g * 2)
+        u5 = deconv2d(u4, d1, self.num_f_g)
 
-        u8 = UpSampling2D(size=2)(u7)
-        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u8)
+        u6 = UpSampling2D(size=2)(u5)
+        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u6)
 
         return Model(d0, output_image)
 
@@ -466,7 +462,7 @@ class GAN_P2P():
                     img_batch = map_test[GENERATOR_EVOLUTION_INDIZES], aerial_test[GENERATOR_EVOLUTION_INDIZES]
                     self.generator_evolution(epoch, SAMPLE_INTERVAL, rep, img_batch)
                 rep += 1
-        self.save_generator()
+        self.save_generator(self.name_string)
 
     def generator_evolution(self, epoch, sample_interval, repetition, img_batch):
 
