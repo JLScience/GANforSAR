@@ -102,7 +102,7 @@ class GAN_P2P():
         validity = self.discriminator([img_gen, img_cond])
         # build and compile model:
         self.combined = Model(inputs=[img_gen_real, img_cond], outputs=[validity, img_gen])
-        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 10], optimizer=self.opt_g)
+        self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 100], optimizer=self.opt_g)
         print('--> Combined Generator Model:')
         self.combined.summary()
 
