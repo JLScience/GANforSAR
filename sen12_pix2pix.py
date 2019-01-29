@@ -76,7 +76,7 @@ class GAN_P2P():
         self.opt_g = Adam(lr=lr_g, beta_1=0.5)
         self.opt_d = Adam(lr=lr_d, beta_1=0.5)
 
-        self.generator = self.make_generator_small()                                                    #
+        self.generator = self.make_generator()                                                    #
         print('--> Generator Model:')
         self.generator.summary()
 
