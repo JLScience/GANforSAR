@@ -5,6 +5,7 @@ import h5py
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import datetime
 
 from keras.optimizers import Adam
 from keras.models import Model
@@ -19,14 +20,14 @@ import augmentation
 
 # TRAINING VARIABLES:
 EPOCHS = 200
-BATCH_SIZE = 50
+BATCH_SIZE = 10
 IMAGES_PER_SPLIT = 4
-SAMPLE_INTERVAL = 100
+SAMPLE_INTERVAL = 50
 GENERATOR_EVOLUTION_DATA = []
-GENERATOR_EVOLUTION_INDIZES = [1, 100, 500, 1900]
-GENERATED_DATA_LOCATION = 'generated_images/running/'
+GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
+GENERATED_DATA_LOCATION = 'generated_images/writing/'
 DATASET_PATH = ''
-MODEL_WEIGHTS_PATH = 'models/running/'
+MODEL_WEIGHTS_PATH = 'models/writing/'
 
 # - - - - - - - - - -
 
@@ -34,24 +35,29 @@ MODEL_WEIGHTS_PATH = 'models/running/'
 class GAN_P2P():
 
     def __init__(self):
+        # location:
+        self.name_string = str(datetime.datetime.now())
+        os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
+        os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
+
         # image geometry
-        self.img_rows = 64
-        self.img_cols = 64
+        self.img_rows = 256
+        self.img_cols = 256
         self.channels_cond = 3
-        self.channels_gen = 1
+        self.channels_gen = 3
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
         self.img_shape_gen = (self.img_rows, self.img_cols, self.channels_gen)
-        self.name_string = 'ips_' + str(IMAGES_PER_SPLIT) + '_'
+        # self.name_string = 'ips_' + str(IMAGES_PER_SPLIT) + '_'
 
         # base number of filters
         self.num_f_g = 64
-        self.num_f_d = 32
+        self.num_f_d = 64
 
         # discriminator output shape
         self.disc_patch = (int(self.img_rows / 16), int(self.img_cols / 16), 1)  # img_rows / (2**num_disc_layers)
 
         lr_g = 0.0002
-        lr_d = 0.00005
+        lr_d = 0.0001
         idz = []
         for idx, arg in enumerate(sys.argv):
             if 'd' in arg:
@@ -70,7 +76,7 @@ class GAN_P2P():
         self.opt_g = Adam(lr=lr_g, beta_1=0.5)
         self.opt_d = Adam(lr=lr_d, beta_1=0.5)
 
-        self.generator = self.make_generator_64(use_batch_normalization=False)                          #
+        self.generator = self.make_generator()                                                    #
         print('--> Generator Model:')
         self.generator.summary()
 
@@ -105,7 +111,7 @@ class GAN_P2P():
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
             d = LeakyReLU(alpha=0.2)(d)
             if bn:
-                d = BatchNormalization(momentum=0.8)(d)
+                d = BatchNormalization(momentum=0.9)(d)
             return d
 
         def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
@@ -113,11 +119,29 @@ class GAN_P2P():
             u = Conv2D(filters, kernel_size=f_size, strides=1, padding='same', activation='relu')(u)
             if dropout_rate:
                 u = Dropout(dropout_rate)(u)
-            u = BatchNormalization(momentum=0.8)(u)
+            u = BatchNormalization(momentum=0.9)(u)
             u = Concatenate()([u, skip_input])
             return u
 
         d0 = Input(shape=self.img_shape_cond)
+
+        # d1 = conv2d(d0, self.num_f_g, bn=False)
+        # d2 = conv2d(d1, self.num_f_g * 2)
+        # d3 = conv2d(d2, self.num_f_g * 4)
+        # d4 = conv2d(d3, self.num_f_g * 8)
+        # d5 = conv2d(d4, self.num_f_g * 8)
+        # d6 = conv2d(d5, self.num_f_g * 8)
+        # d7 = conv2d(d6, self.num_f_g * 8)
+        #
+        # u1 = deconv2d(d7, d6, self.num_f_g * 8)
+        # u2 = deconv2d(u1, d5, self.num_f_g * 8)
+        # u3 = deconv2d(u2, d4, self.num_f_g * 8)
+        # u4 = deconv2d(u3, d3, self.num_f_g * 4)
+        # u5 = deconv2d(u4, d2, self.num_f_g * 4)
+        # u6 = deconv2d(u5, d1, self.num_f_g)
+
+        # u7 = UpSampling2D(size=2)(u6)
+        # output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u7)
 
         d1 = conv2d(d0, self.num_f_g, bn=False)
         d2 = conv2d(d1, self.num_f_g * 2)
@@ -126,16 +150,18 @@ class GAN_P2P():
         d5 = conv2d(d4, self.num_f_g * 8)
         d6 = conv2d(d5, self.num_f_g * 8)
         d7 = conv2d(d6, self.num_f_g * 8)
+        d8 = conv2d(d7, self.num_f_g * 8)
 
-        u1 = deconv2d(d7, d6, self.num_f_g * 8)
-        u2 = deconv2d(u1, d5, self.num_f_g * 8)
-        u3 = deconv2d(u2, d4, self.num_f_g * 8)
-        u4 = deconv2d(u3, d3, self.num_f_g * 4)
-        u5 = deconv2d(u4, d2, self.num_f_g * 4)
-        u6 = deconv2d(u5, d1, self.num_f_g)
+        u1 = deconv2d(d8, d7, self.num_f_g * 8)
+        u2 = deconv2d(u1, d6, self.num_f_g * 8)
+        u3 = deconv2d(u2, d5, self.num_f_g * 8)
+        u4 = deconv2d(u3, d4, self.num_f_g * 8)
+        u5 = deconv2d(u4, d3, self.num_f_g * 4)
+        u6 = deconv2d(u5, d2, self.num_f_g * 2)
+        u7 = deconv2d(u6, d1, self.num_f_g)
 
-        u7 = UpSampling2D(size=2)(u6)
-        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u7)
+        u8 = UpSampling2D(size=2)(u7)
+        output_image = Conv2D(self.channels_gen, kernel_size=4, strides=1, padding='same', activation='tanh')(u8)
 
         return Model(d0, output_image)
 
@@ -144,7 +170,7 @@ class GAN_P2P():
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
             d = LeakyReLU(alpha=0.2)(d)
             if bn and use_batch_normalization:
-                d = BatchNormalization(momentum=0.8)(d)
+                d = BatchNormalization(momentum=0.9)(d)
             return d
 
         def deconv2d(layer_input, skip_input, filters, f_size=4, dropout_rate=0):
@@ -153,7 +179,7 @@ class GAN_P2P():
             if dropout_rate:
                 u = Dropout(dropout_rate)(u)
             if use_batch_normalization:
-                u = BatchNormalization(momentum=0.8)(u)
+                u = BatchNormalization(momentum=0.9)(u)
             u = Concatenate()([u, skip_input])
             return u
 
@@ -179,7 +205,7 @@ class GAN_P2P():
             d = Conv2D(filters, kernel_size=f_size, strides=2, padding='same')(layer_input)
             d = LeakyReLU(alpha=0.2)(d)
             if bn:
-                d = BatchNormalization(momentum=0.8)(d)
+                d = BatchNormalization(momentum=0.9)(d)
             return d
 
         img_gen = Input(shape=self.img_shape_gen)
@@ -192,7 +218,7 @@ class GAN_P2P():
         d2 = discriminator_layer(d1, self.num_f_d * 2)
         d3 = discriminator_layer(d2, self.num_f_d * 4)
         d4 = discriminator_layer(d3, self.num_f_d * 8)
-        validity = Conv2D(1, kernel_size=4, strides=1, padding='same')(d4)
+        validity = Conv2D(1, kernel_size=4, strides=1, padding='same', activation='sigmoid')(d4)
 
         return Model([img_gen, img_cond], validity)
 
@@ -318,13 +344,13 @@ class GAN_P2P():
     def train_aerial_map(self):
         # load datasets:
         print('--- Load datasets ...')
-        aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps('data/maps/ex_maps_small.hdf5')
+        aerial_train, map_train, aerial_test, map_test = data_io.load_dataset_maps('data/maps/maps_writing.hdf5')
 
-        # # shrink dataset:
+        # shrink dataset:
         # aerial_train = aerial_train[:500, ...]
         # map_train = map_train[:500, ...]
-        # aerial_test = aerial_test[:50, ...]
-        # map_test = map_test[:50, ...]
+        aerial_test = aerial_test[:50, ...]
+        map_test = map_test[:50, ...]
 
         # normalize datasets:
         print('--- normalize datasets ...')
@@ -424,11 +450,11 @@ class GAN_P2P():
                 # plot generated images:
                 for j in range(1, num_images_to_show + 1):
                     idx = int(j * repetition / (sample_interval * num_images_to_show))
-                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i, :, :, 0], cmap='gray')
+                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i]) # [i, :, :, 0], cmap='gray')
                     axs[i, j].set_title(idx * sample_interval)
                     axs[i, j].axis('off')
                 # plot original image:
-                axs[i, 6].imshow(imgs_gen_real[i, :, :, 0], cmap='gray')
+                axs[i, 6].imshow(imgs_gen_real[i]) # , :, :, 0], cmap='gray')
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
             fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
@@ -449,14 +475,19 @@ class GAN_P2P():
         titles = ['Condition', 'Original', 'Generated']
 
         fig, axs = plt.subplots(r, c)
+        # for i in range(r):
+        #     for j in range(c):
+        #         # RGB image:
+        #         if titles[j] == 'Condition':
+        #             axs[i, j].imshow(imgs_all[j][i])
+        #         # gray scale image:
+        #         else:
+        #             axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
+        #         axs[i, j].set_title(titles[j])
+        #         axs[i, j].axis('off')
         for i in range(r):
             for j in range(c):
-                # RGB image:
-                if titles[j] == 'Condition':
-                    axs[i, j].imshow(imgs_all[j][i])
-                # gray scale image:
-                else:
-                    axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
+                axs[i, j].imshow(imgs_all[j][i])
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
 

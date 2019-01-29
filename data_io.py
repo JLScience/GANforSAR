@@ -371,3 +371,7 @@ def load_dataset_maps(path):
 
 
 # - - - - - ---------------------------- - - - - -
+
+if __name__ == '__main__':
+    create_dataset_maps('maps_writing.hdf5', 'data/maps/')
+
