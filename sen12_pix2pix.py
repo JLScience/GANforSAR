@@ -36,7 +36,7 @@ class GAN_P2P():
 
     def __init__(self):
         # location:
-        self.name_string = str(datetime.datetime.now()) + '_'
+        self.name_string = str(datetime.datetime.now())
         os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
         os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
 
@@ -61,12 +61,12 @@ class GAN_P2P():
         idz = []
         for idx, arg in enumerate(sys.argv):
             if 'd' in arg:
-                self.name_string = self.name_string + arg + '_'
+                # self.name_string = self.name_string + arg + '_'
                 lr_d = float(arg.replace('d_', ''))
                 idz.append(idx)
                 print('Use non-standard discriminator learning rate {}'.format(lr_d))
             if 'g' in arg:
-                self.name_string = self.name_string + arg + '_'
+                # self.name_string = self.name_string + arg + '_'
                 lr_g = float(arg.replace('g_', ''))
                 idz.append(idx)
                 print('Use non-standard generator learning rate {}'.format(lr_g))
