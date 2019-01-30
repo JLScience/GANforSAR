@@ -389,6 +389,14 @@ class GAN_P2P():
         aerial_test = aerial_test[:50, ...]
         map_test = map_test[:50, ...]
 
+        # augmentation:
+        print('--- augment datasets ...')
+        aerial_train = np.concatenate((aerial_train, augmentation.apply_all(aerial_train)), axis=0)
+        map_train = np.concatenate((map_train, augmentation.apply_all(map_train)), axis=0)
+        aerial_test = np.concatenate((aerial_test, augmentation.apply_all(aerial_test)), axis=0)
+        map_test = np.concatenate((map_test, augmentation.apply_all(map_test)), axis=0)
+
+
         # normalize datasets:
         print('--- normalize datasets ...')
         aerial_test = np.array(aerial_test / 127.5 - 1, dtype=np.float32)
