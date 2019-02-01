@@ -305,8 +305,8 @@ class GAN_P2P():
 
         print(dataset_sar_train.shape)
         # only use subset:
-        dataset_sar_train = dataset_sar_train[::2, ...]
-        dataset_opt_train = dataset_opt_train[::2, ...]
+        dataset_sar_train = dataset_sar_train[::4, ...]
+        dataset_opt_train = dataset_opt_train[::4, ...]
         print(dataset_sar_train.shape)
 
 
