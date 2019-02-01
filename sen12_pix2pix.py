@@ -358,6 +358,10 @@ class GAN_P2P():
         rep = 0
         for epoch in range(EPOCHS):
 
+            if epoch == 100:
+                self.save_generator(self.name_string + '_intermediate')
+                print('--- saved intermediate generator weights!')
+
             # shuffle datasets:
             p = np.random.permutation(num_train)
             dataset_opt_train = dataset_opt_train[p]
