@@ -44,7 +44,7 @@ class GAN_P2P():
         self.img_rows = 256
         self.img_cols = 256
         self.channels_cond = 3
-        self.channels_gen = 3
+        self.channels_gen = 1
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
         self.img_shape_gen = (self.img_rows, self.img_cols, self.channels_gen)
         # self.name_string = 'ips_' + str(IMAGES_PER_SPLIT) + '_'
@@ -58,6 +58,8 @@ class GAN_P2P():
 
         lr_g = 0.0002
         lr_d = 0.0001
+        # lr_g = 0.0005
+        # lr_d = 0.00002
         idz = []
         for idx, arg in enumerate(sys.argv):
             if 'd' in arg:
@@ -261,7 +263,7 @@ class GAN_P2P():
 
     def train_sen12(self):
 
-        self.name_string = self.name_string + 'sets'
+        self.name_string = self.name_string + '_sets'
         if len(sys.argv) == 1:
             dataset_nr = [0]
             self.name_string = self.name_string + '_0'
@@ -299,18 +301,32 @@ class GAN_P2P():
         else:
             print('--- Load dataset number(s) {} ...'.format(dataset_nr))
             dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-                portion_mode=dataset_nr, split_mode='same', split_ratio=0.7)
+                portion_mode=dataset_nr, split_mode='same', split_ratio=0.8)
 
-        # cut images (from 256x256 to 64x64):
-        print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
-        print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
-        print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
-        print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
-        print('opt_train done')
+        print(dataset_sar_train.shape)
+        # only use subset:
+        dataset_sar_train = dataset_sar_train[::4, ...]
+        dataset_opt_train = dataset_opt_train[::4, ...]
+        print(dataset_sar_train.shape)
+
+
+        # # cut images (from 256x256 to 64x64):
+        # print('--- divide images ...')
+        # dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        # print('sar_test done')
+        # dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        # print('opt_test done')
+        # dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        # print('sar_train done')
+        # dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=4, num_images_per_split=IMAGES_PER_SPLIT)
+        # print('opt_train done')
+
+        # apply augmentations:
+        dataset_sar_test = augmentation.apply_all(dataset_sar_test)
+        dataset_opt_test = augmentation.apply_all(dataset_opt_test)
+        dataset_sar_train = augmentation.apply_all(dataset_sar_train)
+        dataset_opt_train = augmentation.apply_all(dataset_opt_train)
+
 
         # normalize datasets:
         print('--- normalize datasets ...')
@@ -364,12 +380,12 @@ class GAN_P2P():
 
                 if rep % SAMPLE_INTERVAL == 0:
                     print("[Epoch {:5d}/{:5d}, Batch {:4d}/{:4d}] \t "
-                          "[D loss: {:05.3f}, acc: {:05.2f}%] \t [G loss: {:05.3f}]".format(epoch + 1, EPOCHS,
-                                                                                            int(batch_i / BATCH_SIZE),
-                                                                                            int(num_train / BATCH_SIZE),
-                                                                                            d_loss[0], 100 * d_loss[1],
-                                                                                            g_loss[0]))
-
+                          "[D loss: {:05.3f}, acc: {:05.2f}%] \t "
+                          "[G loss: {:05.3f}, adv: {:05.3f}, L1: {:05.3f}]".format(epoch + 1, EPOCHS,
+                                                                                   int(batch_i / BATCH_SIZE),
+                                                                                   int(num_train / BATCH_SIZE),
+                                                                                   d_loss[0], 100 * d_loss[1],
+                                                                                   g_loss[0], g_loss[1], g_loss[2]))
                     i = np.random.randint(low=0, high=num_test, size=3)
                     img_batch = dataset_sar_test[i], dataset_opt_test[i]
                     self.sample_images(epoch, rep, img_batch)
@@ -496,7 +512,7 @@ class GAN_P2P():
                 # plot generated images:
                 for j in range(1, num_images_to_show + 1):
                     idx = int(j * repetition / (sample_interval * num_images_to_show))
-                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i]) # [i, :, :, 0], cmap='gray')
+                    axs[i, j].imshow(GENERATOR_EVOLUTION_DATA[idx][i, :, :, 0], cmap='gray')
                     axs[i, j].set_title(idx * sample_interval)
                     axs[i, j].axis('off')
                 # plot original image:
@@ -521,21 +537,21 @@ class GAN_P2P():
         titles = ['Condition', 'Original', 'Generated']
 
         fig, axs = plt.subplots(r, c)
-        # for i in range(r):
-        #     for j in range(c):
-        #         # RGB image:
-        #         if titles[j] == 'Condition':
-        #             axs[i, j].imshow(imgs_all[j][i])
-        #         # gray scale image:
-        #         else:
-        #             axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
-        #         axs[i, j].set_title(titles[j])
-        #         axs[i, j].axis('off')
         for i in range(r):
             for j in range(c):
-                axs[i, j].imshow(imgs_all[j][i])
+                # RGB image:
+                if titles[j] == 'Condition':
+                    axs[i, j].imshow(imgs_all[j][i])
+                # gray scale image:
+                else:
+                    axs[i, j].imshow(imgs_all[j][i, :, :, 0], cmap='gray')
                 axs[i, j].set_title(titles[j])
                 axs[i, j].axis('off')
+        # for i in range(r):
+        #     for j in range(c):
+        #         axs[i, j].imshow(imgs_all[j][i])
+        #         axs[i, j].set_title(titles[j])
+        #         axs[i, j].axis('off')
 
         fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + '{}_{}.png'.format(epoch+1, repetition))
         plt.close()
@@ -588,6 +604,6 @@ def test_generator(num_images):
 
 if __name__ == '__main__':
     gan = GAN_P2P()
-    gan.train_aerial_map()
-    # gan.train_sen12()
+    # gan.train_aerial_map()
+    gan.train_sen12()
     # translate_eurosat('real_5')
