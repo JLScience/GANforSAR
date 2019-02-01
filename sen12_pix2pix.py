@@ -37,8 +37,8 @@ class GAN_P2P():
     def __init__(self):
         # location:
         self.name_string = str(datetime.datetime.now())
-        os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
-        os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
+        # os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
+        # os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
 
         # image geometry
         self.img_rows = 256
@@ -516,7 +516,7 @@ class GAN_P2P():
                     axs[i, j].set_title(idx * sample_interval)
                     axs[i, j].axis('off')
                 # plot original image:
-                axs[i, 6].imshow(imgs_gen_real[i]) # , :, :, 0], cmap='gray')
+                axs[i, 6].imshow(imgs_gen_real[i, :, :, 0], cmap='gray')
                 axs[i, 6].set_title('Original')
                 axs[i, 6].axis('off')
             fig.savefig(GENERATED_DATA_LOCATION + self.name_string + '/' + 'evolution_{}_{}.png'.format(epoch+1, repetition))
