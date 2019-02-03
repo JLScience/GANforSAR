@@ -34,15 +34,15 @@ MODEL_WEIGHTS_PATH = 'models/writing/'
 
 class GAN_P2P():
 
-    def __init__(self):
+    def __init__(self, rows=256, cols=256):
         # location:
         self.name_string = str(datetime.datetime.now())
-        # os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
+        os.mkdir(GENERATED_DATA_LOCATION + self.name_string + '/')
         # os.mkdir(MODEL_WEIGHTS_PATH + self.name_string + '/')
 
         # image geometry
-        self.img_rows = 256
-        self.img_cols = 256
+        self.img_rows = rows
+        self.img_cols = cols
         self.channels_cond = 3
         self.channels_gen = 1
         self.img_shape_cond = (self.img_rows, self.img_cols, self.channels_cond)
@@ -90,7 +90,7 @@ class GAN_P2P():
 
         self.discriminator = self.make_discriminator()
         print('--> Discriminator Model:')
-        self.discriminator.summary()
+        # self.discriminator.summary()
 
         # --- compile discriminator model:
         self.discriminator.compile(loss='mse', optimizer=self.opt_d, metrics=['accuracy'])
@@ -106,7 +106,7 @@ class GAN_P2P():
         self.combined = Model(inputs=[img_gen_real, img_cond], outputs=[validity, img_gen])
         self.combined.compile(loss=['mse', 'mae'], loss_weights=[1, 10], optimizer=self.opt_g)
         print('--> Combined Generator Model:')
-        self.combined.summary()
+        # self.combined.summary()
 
     def make_generator(self):
         def conv2d(layer_input, filters, f_size=4, bn=True):
@@ -356,10 +356,11 @@ class GAN_P2P():
         fake = np.zeros((BATCH_SIZE,) + self.disc_patch)
 
         rep = 0
+        save_list = [100, 150, 170, 180, 190, 195]
         for epoch in range(EPOCHS):
 
-            if epoch == 100:
-                self.save_generator(self.name_string + '_intermediate')
+            if epoch in save_list:
+                self.save_generator(self.name_string + str(epoch))
                 print('--- saved intermediate generator weights!')
 
             # shuffle datasets:
@@ -606,8 +607,42 @@ def test_generator(num_images):
     plt.show()
 
 
+def writing_test_generator():
+    print('Generator loaded!')
+    dataset_opt, dataset_sar, _, _ = data_io.load_Sen12_data(
+        portion_mode=[4, 18, 19, 20, 24, 38, 39, 49, 53, 54], split_mode='same', split_ratio=1.0)
+    print('datasets loaded!')
+    p = np.random.permutation(dataset_sar.shape[0])
+    dataset_opt = dataset_opt[p]
+    dataset_sar = dataset_sar[p]
+    print('datasets shuffled!')
+    dataset_opt = dataset_opt[:150, ...]
+    dataset_sar = dataset_sar[:150, ...]
+    print('dataset_reduced!')
+    dataset_sar = np.array(dataset_sar / 127.5 - 1, dtype=np.float32)
+    dataset_opt = np.array(dataset_opt / 127.5 - 1, dtype=np.float32)
+    print('datasets normalized!')
+
+    # build 256x256 generator and produce images
+    gan = GAN_P2P()
+    gan.load_generator('2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate')
+    for i in range(50):
+        im_batch = [dataset_sar[3*i:3*i+3, ...], dataset_opt[3*i:3*i+3, ...]]
+        gan.sample_images(i, 0, im_batch)
+
+    # build 64x64 generator and produce images
+    gan64 = GAN_P2P(64, 64)
+    gan64.load_generator('2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate')
+    for i in range(50):
+        for j in range(4):
+            im_batch = [dataset_sar[3 * i:3 * i + 3, j*64:j*64+64, j*64:j*64+64, :], dataset_opt[3 * i:3 * i + 3, j*64:j*64+64, j*64:j*64+64, :]]
+            gan64.sample_images(i, j+1, im_batch)
+
+
+
 if __name__ == '__main__':
     gan = GAN_P2P()
     # gan.train_aerial_map()
     gan.train_sen12()
     # translate_eurosat('real_5')
+    # writing_test_generator()
