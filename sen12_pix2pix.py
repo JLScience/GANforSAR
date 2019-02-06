@@ -575,7 +575,7 @@ class GAN_P2P():
 
 
 def translate_eurosat(model_name):
-    gan = GAN_P2P()
+    gan = GAN_P2P(64, 64)
     # gan.train_sen12()
     gan.load_generator(model_name)
     data = data_io.load_dataset_eurosat()
@@ -625,24 +625,33 @@ def writing_test_generator():
 
     # build 256x256 generator and produce images
     gan = GAN_P2P()
-    gan.load_generator('2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate')
+    gan.load_generator('2019-02-03 10:45:48.218523_sets_4_18_19_20_24_38_39_49_53_54190')
+    pred_256 = gan.generator.predict(dataset_opt)
     for i in range(50):
-        im_batch = [dataset_sar[3*i:3*i+3, ...], dataset_opt[3*i:3*i+3, ...]]
-        gan.sample_images(i, 0, im_batch)
+        # plt.imshow(dataset_opt[i, ...] * 0.5 + 0.5)
+        plt.imsave(fname=GENERATED_DATA_LOCATION + gan.name_string + '/' + str(i) + '_cond', arr=dataset_opt[i, ...] * 0.5 + 0.5)
+        plt.imsave(fname=GENERATED_DATA_LOCATION + gan.name_string + '/' + str(i) + '_real', arr=dataset_sar[i, :, :, 0] * 0.5 + 0.5, cmap='gray')
+        plt.imsave(fname=GENERATED_DATA_LOCATION + gan.name_string + '/' + str(i) + '_gen_256', arr=pred_256[i, :, :, 0] * 0.5 + 0.5, cmap='gray')
 
     # build 64x64 generator and produce images
     gan64 = GAN_P2P(64, 64)
-    gan64.load_generator('2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate')
+    gan64.load_generator('2019-02-03 10:45:48.218523_sets_4_18_19_20_24_38_39_49_53_54190')
+    pred_64 = np.zeros((4, 4, 150, 64, 64, 1), dtype=np.float32)
+    for r in range(4):
+        for c in range(4):
+            pred_64[r, c, ...] = gan64.generator.predict(dataset_opt[:, 64*r:64*(r+1), 64*c:64*(c+1), :])
+    # pred_64 = pred_64.reshape((150, 256, 256, 1))
     for i in range(50):
-        for j in range(4):
-            im_batch = [dataset_sar[3 * i:3 * i + 3, j*64:j*64+64, j*64:j*64+64, :], dataset_opt[3 * i:3 * i + 3, j*64:j*64+64, j*64:j*64+64, :]]
-            gan64.sample_images(i, j+1, im_batch)
-
+        x = np.zeros((256, 256), dtype=np.float32)
+        for r in range(4):
+            for c in range(4):
+                x[64*r:64*(r+1), 64*c:64*(c+1)] = pred_64[r, c, i, :, :, 0]
+        plt.imsave(fname=GENERATED_DATA_LOCATION + gan.name_string + '/' + str(i) + '_gen_64', arr=x * 0.5 + 0.5, cmap='gray')
 
 
 if __name__ == '__main__':
-    gan = GAN_P2P()
+    # gan = GAN_P2P()
     # gan.train_aerial_map()
-    gan.train_sen12()
-    # translate_eurosat('real_5')
+    # gan.train_sen12()
+    translate_eurosat('2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate')
     # writing_test_generator()
