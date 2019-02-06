@@ -19,23 +19,35 @@ BATCH_SIZE = 50
 
 class Custom_Classifer():
 
-    def __init__(self, network_type):
+    def __init__(self, network_type, pre_trained):
         self.network_type = network_type
+        # self.data_type = data_type
+        self.pre_trained = pre_trained
         self.num_classes = 10
-        self.class_names = ['AnnualCrop', 'Forest', 'HerbaceousVegetation', 'Highway', 'Industrial',
-                            'Pasture', 'PermanentCrop', 'Residential', 'River', 'SeaLake']
+        self.class_names = ['AnnualCrop', 'Forest', 'Herb.Veg.', 'Highway', 'Industrial',
+                            'Pasture', 'Perm.Crop', 'Residential', 'River', 'SeaLake']
         self.class_names_ger = ['EinjKultur', 'Wald', 'KrautKultur', 'Straße', 'Industrie',
                                 'Wiese', 'DauerKultur', 'Wohngebiet', 'Fluss', 'Gewässer']
+
         self.input_shape = (64, 64, 3)
+        # if data_type == 'optical':
+        #     self.input_shape = (64, 64, 3)
+        # elif data_type == 'sar':
+        #     self.input_shape = (64, 64, 1)
+        # else:
+        #     raise ValueError('Unknown data type, you passed' + self.data_type)
+
         if network_type == 'vgg19':
             self.classifier = self.build_model_vgg16()
         elif network_type == 'resnet50':
             self.classifier = self.build_model_resnet50()
         else:
             raise ValueError('Unknown network type, you passed' + self.network_type)
+
         self.classifier.summary()
 
     def inspect_sar_data(self, class_idx, dataset_names):
+        os.mkdir('generated_images/writing/inspect_sar_sata' + str(class_idx))
         data_opt = data_io.load_dataset_eurosat('data/EuroSAT/dataset.hdf5', mode=self.class_names[class_idx])
         data_sar = []
         for name in dataset_names:
@@ -49,12 +61,16 @@ class Custom_Classifer():
                 for j in range(len(data_sar)):
                     axs[i, j+1].imshow(data_sar[j][idx*num_image_pairs+i, :, :, 0], cmap='gray')
                     axs[i, j+1].axis('off')
-            plt.show()
+            # plt.imsave()
+            fig.savefig('generated_images/writing/inspect_sar_sata' + str(class_idx) + '/' + str(idx))
 
     def build_model_vgg16(self):
-        vgg16_model = keras.applications.vgg19.VGG19(include_top=False, input_shape=(64, 64, 3))
-        vgg16_model.trainable = False
-        inp = Input(shape=(64, 64, 3))
+        if self.pre_trained:
+            vgg16_model = keras.applications.vgg19.VGG19(include_top=False, weights='imagenet', input_shape=self.input_shape)
+            vgg16_model.trainable = False
+        else:
+            vgg16_model = keras.applications.vgg19.VGG19(include_top=False, weights=None, input_shape=self.input_shape)
+        inp = Input(shape=self.input_shape)
         outp = vgg16_model(inp)
         outp = Flatten()(outp)
         outp = Dropout(0.3)(outp)
@@ -65,14 +81,16 @@ class Custom_Classifer():
         return Model(inp, outp)
 
     def build_model_resnet50(self):
-        # resnet50_model = my_resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
-        # resnet50_model.trainable = False
-        resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=(64, 64, 3))
-        inp = Input(shape=(64, 64, 3))
+        if self.pre_trained:
+            resnet50_model = my_resnet50.ResNet50(include_top=False, weights='imagenet', input_shape=self.input_shape)
+            resnet50_model.trainable = False
+        else:
+            resnet50_model = my_resnet50.ResNet50(include_top=False, weights=None, input_shape=self.input_shape)
+        inp = Input(shape=self.input_shape)
         outp = resnet50_model(inp)
         outp = Flatten()(outp)
-        outp = Dropout(0.5)(outp)
-        outp = Dense(512, activation='relu')(outp)
+        # outp = Dropout(0.5)(outp)
+        # outp = Dense(512, activation='relu')(outp)
         # outp = Dropout(0.3)(outp)
         # outp = Dense(512, activation='relu')(outp)
         outp = Dense(self.num_classes, activation='softmax')(outp)
@@ -280,22 +298,33 @@ class Custom_Classifer():
 
         self.generate_confusion_matrix(x_test, y_test, num_classes=8, class_labels=used_classes)
 
-    def generate_confusion_matrix(self, x_test, y_test, num_classes=0, class_labels='auto'):
+    def calculate_confusion_matrix(self, x_test, y_test, num_classes=0):
         number_of_classes = self.num_classes if num_classes == 0 else num_classes
-        labels_of_classes = self.class_names if class_labels == 'auto' else class_labels
         conf = np.zeros((number_of_classes, number_of_classes))
         for i in range(number_of_classes):
             x = x_test[y_test == i]
             y_pred = np.argmax(self.classifier.predict(x), axis=1)
             for j in range(number_of_classes):
                 conf[j, i] = y_pred[y_pred == j].shape[0] / y_pred.shape[0]
-        print(np.round(conf, 2))
-        plt.imshow(conf)
+        return conf
+
+    def plot_confusion_matrix(self, conf, class_labels='auto'):
+        import itertools
+        number_of_classes = conf.shape[0]
+        labels_of_classes = self.class_names if class_labels == 'auto' else class_labels
+        conf = np.round(conf, 2)
+        plt.imshow(conf, cmap=plt.cm.Blues)
         plt.colorbar()
         plt.xlabel('correct class')
         plt.ylabel('predicted class')
-        plt.xticks(np.arange(number_of_classes), labels_of_classes, rotation=90)
+        plt.xticks(np.arange(number_of_classes), labels_of_classes, rotation=45)
         plt.yticks(np.arange(number_of_classes), labels_of_classes)
+        # show values in matrix:
+        thresh = 0.5
+        for i,j in itertools.product(range(number_of_classes), range(number_of_classes)):
+            plt.text(j, i, str(conf[i, j]), horizontalalignment='center',
+                     color='white' if conf[i, j] > thresh else 'black')
+        # plt.tight_layout()
         plt.show()
 
     def save_trained_model(self, name):
@@ -309,9 +338,13 @@ class Custom_Classifer():
 
 
 if __name__ == '__main__':
-    classifier = Custom_Classifer('resnet50')
+    classifier = Custom_Classifer('resnet50', pre_trained=True)
+    c = np.random.rand(10, 10)
+    print(c)
+    classifier.plot_confusion_matrix(c)
     # classifier.load_trained_model('vgg_opt')
     # classifier.train_sar()
-    classifier.train_sar_partial()
+    # classifier.train_sar_partial()
     # classifier.train_optical()
-    # classifier.inspect_sar_data(5, ['real_5', 'sen12_128x128_pre_balanced'])
+    # for i in range(10):
+    #     classifier.inspect_sar_data(i, ['2019-02-01 22:24:23.763360_sets_0_4_10_18_19_20_24_25_32_38_39_41_45_47_49_51_53_54_56_57_intermediate'])
