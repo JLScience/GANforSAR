@@ -357,23 +357,34 @@ class ESRGAN():
 
         print('--- Load datasets ...')
         dataset_opt_train, dataset_sar_train, dataset_opt_test, dataset_sar_test = data_io.load_Sen12_data(
-            portion_mode=self.data_configuration, split_mode='same', split_ratio=0.5)
+            portion_mode=self.data_configuration, split_mode='same', split_ratio=0.8)
 
-        # cut images (from 256x256 to 64x64):
-        f = int(256 / self.size)
-        print('--- divide images ...')
-        dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=f,
-                                                     num_images_per_split=self.IMGS_PER_SPLIT)
-        print('sar_test done')
-        dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=f,
-                                                     num_images_per_split=self.IMGS_PER_SPLIT)
-        print('opt_test done')
-        dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=f,
-                                                      num_images_per_split=self.IMGS_PER_SPLIT)
-        print('sar_train done')
-        dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=f,
-                                                      num_images_per_split=self.IMGS_PER_SPLIT)
-        print('opt_train done')
+        # EDIT: only take subset of test set
+        dataset_sar_train = dataset_sar_train[::4, ...]
+        dataset_opt_train = dataset_opt_train[::4, ...]
+
+        if self.IMGS_PER_SPLIT != 1:
+            # cut images (from 256x256 to 64x64):
+            f = int(256 / self.size)
+            print('--- divide images ...')
+            dataset_sar_test = augmentation.split_images(dataset_sar_test, factor=f,
+                                                         num_images_per_split=self.IMGS_PER_SPLIT)
+            print('sar_test done')
+            dataset_opt_test = augmentation.split_images(dataset_opt_test, factor=f,
+                                                         num_images_per_split=self.IMGS_PER_SPLIT)
+            print('opt_test done')
+            dataset_sar_train = augmentation.split_images(dataset_sar_train, factor=f,
+                                                          num_images_per_split=self.IMGS_PER_SPLIT)
+            print('sar_train done')
+            dataset_opt_train = augmentation.split_images(dataset_opt_train, factor=f,
+                                                          num_images_per_split=self.IMGS_PER_SPLIT)
+            print('opt_train done')
+
+        # apply augmentations:
+        dataset_sar_test = augmentation.apply_all(dataset_sar_test)
+        dataset_opt_test = augmentation.apply_all(dataset_opt_test)
+        dataset_sar_train = augmentation.apply_all(dataset_sar_train)
+        dataset_opt_train = augmentation.apply_all(dataset_opt_train)
 
         # normalize datasets:
         print('--- normalize datasets ...')

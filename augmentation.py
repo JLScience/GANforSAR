@@ -6,6 +6,10 @@ from scipy.ndimage.measurements import variance
 # if not stated otherwise, the input of each function is expected to have shape (num_samples, width, height, channels)
 
 
+def identity(tensor):
+    return tensor
+
+
 def transpose(tensor):
     rotated = np.zeros(tensor.shape, dtype=tensor.dtype)
     rows = tensor.shape[1]
@@ -48,14 +52,19 @@ def rotate_270_clockwise(tensor):
     return reflect_horizontal(transpose(tensor))
 
 
-def apply_all(tensor1, tensor2=0):
-    funcs = [transpose, reflect_horizontal, reflect_vertical, rotate_90_clockwise, rotate_180, rotate_270_clockwise]
+def apply_all(tensor1, tensor2=0, apply_transpose=True):
+    if apply_transpose:
+        funcs = [transpose, reflect_horizontal, reflect_vertical, rotate_90_clockwise, rotate_180, rotate_270_clockwise]
+    else:
+        funcs = [identity, reflect_horizontal, reflect_vertical, rotate_90_clockwise, rotate_180, rotate_270_clockwise]
     descriptions = ['Apply transposition \t\t\t\t (1/6) ...',
                     'Apply horizontal reflection \t\t (2/6) ...',
                     'Apply vertical reflection \t\t\t (3/6) ...',
                     'Apply rotation (90 deg clockwise) \t (4/6) ...',
                     'Apply rotation (180 deg clockwise) \t (5/6) ...',
                     'Apply rotation (270 deg clockwise) \t (6/6) ...', ]
+    if not apply_transpose:
+        descriptions[0] = 'Apply identity \t\t\t\t\t\t (1/6) ...'
     out1 = np.zeros(tensor1.shape, dtype=tensor1.dtype)
     if tensor2 != 0:
         out2 = np.zeros(tensor2.shape, dtype=tensor2.dtype)

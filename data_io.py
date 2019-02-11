@@ -309,6 +309,37 @@ def divide_dataset_eurosat(val_fraction, test_fraction, path='data/EuroSAT/datas
 
 # - - - - - Functions for other datasets - - - - -
 
+
+def create_handmade_dataset(path, is_sar):
+    img_size = 64
+    img_channels = 1 if is_sar else 3
+    labels = os.listdir(path)
+    for i, l in enumerate(labels):
+        if '.hdf5' in l:
+            labels.pop(i)
+    print(labels)
+    if is_sar:
+        f = h5py.File(path + 'handmade_dataset_SAR.hdf5')
+    else:
+        f = h5py.File(path + 'handmade_dataset_opt.hdf5')
+    for label in labels:
+        num_labels = 15
+        tensor = np.zeros((num_labels, img_size, img_size, img_channels), dtype=np.uint8)
+        if is_sar:
+            image_names = os.listdir(path + label + '/SAR/')
+        else:
+            image_names = os.listdir(path + label + '/optical')
+        for i, image_name in enumerate(image_names):
+            if is_sar:
+                img = imageio.imread(path + label + '/SAR/' + image_name)
+                tensor[i, :, :, 0] = img
+            else:
+                img = imageio.imread(path + label + '/optical/' + image_name)
+                tensor[i, :, :, :] = img[:, :, :img_channels]
+        f.create_dataset(label, data=tensor)
+        print(label + ' saved.')
+
+
 # USAGE: create_dataset_maps('ex_maps.hdf5', 'data/maps/')
 def create_dataset_maps(dataset_name, file_location):
     shape = 256
@@ -372,5 +403,10 @@ def load_dataset_maps(path):
 
 # - - - - - ---------------------------- - - - - -
 
-# if __name__ == '__main__':
-#     create_dataset_sen12(False, 'summer')
+if __name__ == '__main__':
+    create_handmade_dataset('data/handmade_sen12_subset/', is_sar=True)
+    # img = imageio.imread('data/handmade_sen12_subset/' + 'River' + '/optical/ROIs1158_spring_s2_3_p3.png')
+    # print(img.shape)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(img[:, :, 3])
+    # plt.show()
