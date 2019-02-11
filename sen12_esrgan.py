@@ -23,9 +23,9 @@ import augmentation
 SAMPLE_INTERVAL = 50
 GENERATOR_EVOLUTION_DATA = []
 GENERATOR_EVOLUTION_INDIZES = [1, 10, 20, 40]
-GENERATED_DATA_LOCATION = 'generated_images/esrgan/'
+GENERATED_DATA_LOCATION = 'generated_images/writing/'
 DATASET_PATH = ''
-MODEL_WEIGHTS_PATH = 'models/esrgan/'
+MODEL_WEIGHTS_PATH = 'models/writing/'
 
 
 # - - - - - - - - - -
@@ -691,7 +691,7 @@ def parse_arguments():
 
 
 if __name__ == '__main__':
-    # arguments = parse_arguments()
-    # esrgan = ESRGAN(arguments)
-    # esrgan.train_sen12()
-    translate_EuroSAT('sen12_128x128_pre_balanced')
+    arguments = parse_arguments()
+    esrgan = ESRGAN(arguments)
+    esrgan.train_sen12()
+    # translate_EuroSAT('sen12_128x128_pre_balanced')
